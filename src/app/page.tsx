@@ -1,65 +1,80 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { mockReviews } from '@/lib/mockData';
+import ReviewCard from '@/components/ReviewCard';
+import { Review } from '@/types';
 
 export default function Home() {
+  const [reviews, setReviews] = useState<Review[]>(mockReviews);
+
+  const handleApprove = (id: number) => {
+    setReviews(reviews.filter((r) => r.id !== id));
+  };
+
+  const handleEdit = (id: number, newText: string) => {
+    setReviews(reviews.map((r) => (r.id === id ? { ...r, draftReply: newText } : r)));
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    // Added 'bg-gray-50 min-h-screen' to force a light background
+    <main className="max-w-2xl mx-auto p-4 space-y-6 bg-gray-50 min-h-screen">
+      
+      {/* HEADER - Changed to Dark Blue (Indigo-950) for high contrast */}
+      <div className="flex justify-between items-center py-6">
+        <h1 className="text-3xl font-extrabold text-indigo-950 tracking-tight">
+          EasyReview
+        </h1>
+        <span className="text-sm font-medium text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">
+          {new Date().toLocaleDateString()}
+        </span>
+      </div>
+
+      {/* INSIGHTS DASHBOARD */}
+      <div className="grid grid-cols-2 gap-3 mb-8">
+        <div className="bg-white p-4 rounded-xl border border-green-200 shadow-sm">
+          <div className="text-green-700 text-xs font-bold uppercase tracking-wide">Trending Up</div>
+          <div className="mt-1 font-bold text-gray-900">Sea Bass Special</div>
+          <div className="text-sm text-gray-600 mt-1">
+            Mentioned in <span className="font-bold text-green-700">5 reviews</span>.
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="bg-white p-4 rounded-xl border border-orange-200 shadow-sm">
+          <div className="text-orange-700 text-xs font-bold uppercase tracking-wide">Needs Attention</div>
+          <div className="mt-1 font-bold text-gray-900">Pasta Seasoning</div>
+          <div className="text-sm text-gray-600 mt-1">
+            "Salty" in <span className="font-bold text-orange-700">2 reviews</span>.
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div className="h-px bg-gray-200 my-6"></div>
+
+      {/* REVIEW LIST HEADER - Changed to Pure Black */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-black flex items-center gap-2">
+          Pending Approval 
+          <span className="text-sm font-normal text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+            {reviews.length}
+          </span>
+        </h2>
+        
+        {reviews.map((review) => (
+          <ReviewCard
+            key={review.id}
+            review={review}
+            onApprove={handleApprove}
+            onEdit={handleEdit}
+          />
+        ))}
+
+        {reviews.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300 shadow-sm">
+            <p className="text-gray-900 font-medium">All caught up! Great job today. 🎉</p>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
