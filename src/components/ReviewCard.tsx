@@ -1,80 +1,83 @@
 import { useState } from 'react';
-import { Review } from '@/types';
+import { Review } from '@/app/actions/reviews';
+import { generateReply } from '@/app/actions';
 
 interface ReviewCardProps {
   review: Review;
-  onApprove: (id: number) => void;
-  onEdit: (id: number, newText: string) => void;
+  onApprove: (id: string) => void;
+  onEdit: (id: string, newText: string) => void;
 }
 
 export default function ReviewCard({ review, onApprove, onEdit }: ReviewCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(review.draftReply || "Thank you for your feedback!");
-  const [status, setStatus] = useState<'idle' | 'success' | 'copying'>('idle');
+  const [status, setStatus] = useState<'idle' | 'success' | 'copying' | 'generating'>('idle');
+
+  // Derive sentiment for the AI prompt based on rating
+  const sentiment = review.rating >= 4 ? 'Positive' : review.rating <= 2 ? 'Negative' : 'Neutral';
+
+  // THE NEW AI FUNCTION
+  const handleRegenerate = async () => {
+    setStatus('generating');
+    try {
+      const newReply = await generateReply(review.comment, sentiment, review.author);
+      setDraft(newReply);
+      onEdit(review.id, newReply); // Update the parent state
+      setStatus('idle');
+    } catch (error) {
+      console.error(error);
+      setStatus('idle');
+    }
+  };
 
   const handlePost = async () => {
-    if (review.source === 'Google') {
-      // Simulate API "Loading" -> Success
-      setStatus('success');
-      
-      // Wait 1 second so the user sees "Posted!", then remove the card
-      setTimeout(() => {
-        onApprove(review.id);
-      }, 1200);
-
-    } else {
-      // "Copy & Fly" Flow
-      try {
-        await navigator.clipboard.writeText(draft);
-        setStatus('copying'); // Shows "Copied!"
-        
-        // Wait 1.5 seconds for them to realize it copied, then remove
-        setTimeout(() => {
-          onApprove(review.id);
-          // In a real app, this would also window.open(url)
-        }, 1500);
-      } catch (err) {
-        console.error('Failed to copy', err);
-      }
-    }
+    // Simulate API "Loading" -> Success
+    setStatus('success');
+    
+    // Wait 1.2 seconds so the user sees "Posted!", then remove the card
+    setTimeout(() => {
+      onApprove(review.id);
+    }, 1200);
   };
 
   // Helper to get button text based on status
   const getButtonText = () => {
     if (status === 'success') return '✅ Posted Successfully';
     if (status === 'copying') return '📋 Copied to Clipboard!';
-    return review.source === 'Google' ? '🚀 Post Reply' : '📋 Copy Text';
+    if (status === 'generating') return '✨ Writing...';
+    return '🚀 Post Reply';
   };
 
   // Helper to get button color
   const getButtonColor = () => {
-    if (status === 'success' || status === 'copying') return 'bg-green-600 hover:bg-green-700';
+    if (status === 'success' || status === 'copying') return 'bg-green-600';
+    if (status === 'generating') return 'bg-purple-600 animate-pulse';
     return 'bg-indigo-600 hover:bg-indigo-700';
   };
 
   return (
-    <div className={`bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 transition-all duration-500 ${status !== 'idle' ? 'opacity-50 scale-95' : 'opacity-100'}`}>
+    <div className={`bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-4 transition-all duration-500 ${status === 'success' || status === 'copying' ? 'opacity-50 scale-95' : 'opacity-100'}`}>
       
       {/* HEADER */}
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="font-bold text-gray-900">{review.author}</h3>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-yellow-400 text-sm">{"★".repeat(review.rating)}</span>
-            <span className="text-xs text-gray-400">{review.source} • {review.date}</span>
+            <span className="text-yellow-500 text-sm">{"★".repeat(review.rating)}</span>
+            <span className="text-xs text-gray-600 font-medium">{review.source}</span>
           </div>
         </div>
         <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-          review.sentiment === 'Positive' ? 'bg-green-100 text-green-700' :
-          review.sentiment === 'Negative' ? 'bg-red-100 text-red-700' :
+          sentiment === 'Positive' ? 'bg-green-100 text-green-700' :
+          sentiment === 'Negative' ? 'bg-red-100 text-red-700' :
           'bg-gray-100 text-gray-700'
         }`}>
-          {review.sentiment}
+          {sentiment}
         </span>
       </div>
       
       {/* REVIEW TEXT */}
-      <p className="text-gray-700 text-sm mb-4 leading-relaxed">{review.text}</p>
+      <p className="text-gray-700 text-sm mb-4 leading-relaxed">{review.comment}</p>
 
       {/* EDITING MODE */}
       {isEditing ? (
@@ -101,20 +104,27 @@ export default function ReviewCard({ review, onApprove, onEdit }: ReviewCardProp
           </div>
         </div>
       ) : (
-        /* APPROVE MODE (Blue Box) */
+        /* AI BOX */
         <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 transition-colors duration-300">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1">
               ✨ AI Suggested Reply
             </span>
-            {status === 'idle' && (
+            <div className="flex gap-2">
+              <button 
+                onClick={handleRegenerate}
+                disabled={status !== 'idle'}
+                className="text-purple-600 text-xs font-semibold hover:text-purple-800 disabled:opacity-50"
+              >
+                ↻ Regenerate
+              </button>
               <button 
                 onClick={() => setIsEditing(true)}
                 className="text-blue-600 text-xs font-semibold hover:text-blue-800"
               >
                 Edit
               </button>
-            )}
+            </div>
           </div>
           
           <p className="text-gray-700 text-sm italic mb-3">"{review.draftReply || draft}"</p>

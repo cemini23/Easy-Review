@@ -17,26 +17,26 @@ export default function GuestList({ slippingRegulars }: { slippingRegulars: Gues
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">VIP Re-Engager</h1>
-        <p className="text-slate-500">Regulars who haven&apos;t visited in 45+ days.</p>
+        <h1 className="text-3xl font-bold mb-2 text-gray-900">VIP Re-Engager</h1>
+        <p className="text-gray-600 font-medium">Regulars who haven&apos;t visited in 45+ days.</p>
       </div>
 
       <div className="grid gap-4">
         {slippingRegulars.map((guest) => (
-          <div key={guest.email} className="bg-white p-6 rounded-2xl shadow-sm border flex items-center justify-between gap-4">
+          <div key={guest.email} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-bold text-lg">{guest.name}</h3>
+                <h3 className="font-bold text-lg text-gray-900">{guest.name}</h3>
                 <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                   <Star className="w-3 h-3 fill-current" /> {guest.visit_count} visits
                 </span>
               </div>
-              <div className="text-sm text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Last: {guest.last_visit}
+              <div className="text-sm text-gray-700 flex flex-wrap gap-x-4 gap-y-1">
+                <span className="flex items-center gap-1 font-medium">
+                  <Calendar className="w-3 h-3 text-indigo-500" /> Last: {guest.last_visit}
                 </span>
-                <span className="flex items-center gap-1">
-                  <MessageCircle className="w-3 h-3" /> Fav: {guest.favorite_item}
+                <span className="flex items-center gap-1 font-medium">
+                  <MessageCircle className="w-3 h-3 text-indigo-500" /> Fav: {guest.favorite_item}
                 </span>
               </div>
             </div>

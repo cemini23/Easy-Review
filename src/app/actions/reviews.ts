@@ -1,14 +1,19 @@
 "use server";
 
-import reviewsData from "@/data/mock-reviews.json";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { supabase } from "@/lib/supabase";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export interface Review {
   id: string;
   author: string;
   rating: number;
   comment: string;
-  date: string;
+  date?: string;
   source: string;
+  status?: string;
+  draftReply?: string;
 }
 
 export interface ReviewResponseOptions {
@@ -18,24 +23,72 @@ export interface ReviewResponseOptions {
 }
 
 export async function getReviews(): Promise<Review[]> {
-  return reviewsData;
+  const { data, error } = await supabase
+    .from('reviews')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching reviews:", error);
+    return [];
+  }
+
+  return data as Review[];
+}
+
+export async function updateReviewStatus(id: string, status: 'replied' | 'skipped') {
+  const { error } = await supabase
+    .from('reviews')
+    .update({ status })
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
 }
 
 export async function generateResponses(review: Review): Promise<ReviewResponseOptions> {
-  // Mocking Gemini Flash delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  if (review.rating >= 4) {
+  if (!process.env.GEMINI_API_KEY) {
+    // Fallback to mock if no API key is provided
     return {
-      empathetic: `Hi ${review.author}, we're so happy you enjoyed your visit! It means the world to us that you liked the ${review.comment.includes("steak") ? "steak" : "experience"}. We can't wait to see you again soon!`,
-      professional: `Dear ${review.author}, thank you for your positive feedback. We are pleased to hear that you had a satisfactory experience at our establishment. We look forward to welcoming you back.`,
-      brief: `Thanks for the 5 stars, ${review.author}! See you next time.`
+      empathetic: "GEMINI_API_KEY is missing. Please add it to .env.local.",
+      professional: "GEMINI_API_KEY is missing. Please add it to .env.local.",
+      brief: "GEMINI_API_KEY is missing. Please add it to .env.local."
     };
-  } else {
+  }
+
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  const prompt = `
+    You are a professional restaurant manager. Write three different responses to the following customer review.
+    
+    Review from ${review.author}:
+    Rating: ${review.rating} stars
+    Comment: "${review.comment}"
+    
+    Provide exactly three responses in the following JSON format:
+    {
+      "empathetic": "A warm, personal response that validates their feelings.",
+      "professional": "A polite, standard business response.",
+      "brief": "A short, concise response (under 15 words)."
+    }
+    
+    Return ONLY the JSON object.
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    // Clean up potential markdown formatting from Gemini
+    const cleanText = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleanText) as ReviewResponseOptions;
+  } catch (error) {
+    console.error("Gemini Generation Error:", error);
     return {
-      empathetic: `Hi ${review.author}, I'm so sorry to hear about your experience. We clearly missed the mark this time. We'd love to make it right—could you please reach out to us directly?`,
-      professional: `Dear ${review.author}, thank you for bringing this to our attention. We apologize for the issues you encountered. We are reviewing this with our team to ensure it doesn't happen again.`,
-      brief: `We're sorry for the experience, ${review.author}. We'll do better next time.`
+      empathetic: "Sorry, I couldn't generate a response right now.",
+      professional: "Service temporarily unavailable.",
+      brief: "Error generating reply."
     };
   }
 }
