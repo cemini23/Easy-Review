@@ -1,10 +1,19 @@
 export interface Review {
-  id: number;
+  id: string;
   author: string;
   rating: number;
   date: string;
-  text: string;
-  source: 'Google' | 'Yelp' | 'TripAdvisor';
+  comment: string;
+  source: string;
   sentiment: 'Positive' | 'Negative' | 'Neutral';
   draftReply?: string;
+}
+
+export interface VipCustomer {
+  id: string;
+  name: string;
+  lastVisit: number; // Days ago
+  totalSpend: string; // e.g. "$4,500"
+  favoriteDish: string;
+  status: 'At Risk' | 'Lost';
 }

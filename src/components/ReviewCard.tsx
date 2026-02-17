@@ -9,20 +9,19 @@ interface ReviewCardProps {
 }
 
 export default function ReviewCard({ review, onApprove, onEdit }: ReviewCardProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(review.draftReply || "Thank you for your feedback!");
   const [status, setStatus] = useState<'idle' | 'success' | 'copying' | 'generating'>('idle');
 
-  // Derive sentiment for the AI prompt based on rating
+  // Derive sentiment for the AI prompt
   const sentiment = review.rating >= 4 ? 'Positive' : review.rating <= 2 ? 'Negative' : 'Neutral';
 
-  // THE NEW AI FUNCTION
-  const handleRegenerate = async () => {
+  // Handle Tone Click
+  const handleTone = async (tone: string) => {
     setStatus('generating');
     try {
-      const newReply = await generateReply(review.comment, sentiment, review.author);
+      const newReply = await generateReply(review.comment, sentiment, review.author, tone);
       setDraft(newReply);
-      onEdit(review.id, newReply); // Update the parent state
+      onEdit(review.id, newReply);
       setStatus('idle');
     } catch (error) {
       console.error(error);
@@ -31,28 +30,15 @@ export default function ReviewCard({ review, onApprove, onEdit }: ReviewCardProp
   };
 
   const handlePost = async () => {
-    // Simulate API "Loading" -> Success
     setStatus('success');
-    
-    // Wait 1.2 seconds so the user sees "Posted!", then remove the card
-    setTimeout(() => {
-      onApprove(review.id);
-    }, 1200);
+    setTimeout(() => onApprove(review.id), 1200);
   };
 
-  // Helper to get button text based on status
   const getButtonText = () => {
-    if (status === 'success') return '✅ Posted Successfully';
-    if (status === 'copying') return '📋 Copied to Clipboard!';
-    if (status === 'generating') return '✨ Writing...';
+    if (status === 'success') return '✅ Sent!';
+    if (status === 'copying') return '📋 Copied!';
+    if (status === 'generating') return '✨ Thinking...';
     return '🚀 Post Reply';
-  };
-
-  // Helper to get button color
-  const getButtonColor = () => {
-    if (status === 'success' || status === 'copying') return 'bg-green-600';
-    if (status === 'generating') return 'bg-purple-600 animate-pulse';
-    return 'bg-indigo-600 hover:bg-indigo-700';
   };
 
   return (
@@ -67,77 +53,47 @@ export default function ReviewCard({ review, onApprove, onEdit }: ReviewCardProp
             <span className="text-xs text-gray-600 font-medium">{review.source}</span>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-          sentiment === 'Positive' ? 'bg-green-100 text-green-700' :
-          sentiment === 'Negative' ? 'bg-red-100 text-red-700' :
-          'bg-gray-100 text-gray-700'
-        }`}>
-          {sentiment}
-        </span>
       </div>
       
-      {/* REVIEW TEXT */}
       <p className="text-gray-700 text-sm mb-4 leading-relaxed">{review.comment}</p>
 
-      {/* EDITING MODE */}
-      {isEditing ? (
-        <div className="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-            rows={3}
-          />
-          <div className="flex gap-2 justify-end">
-            <button 
-              onClick={() => setIsEditing(false)}
-              className="px-3 py-1.5 text-gray-600 text-xs font-medium hover:text-gray-900"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={() => { onEdit(review.id, draft); setIsEditing(false); }}
-              className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700"
-            >
-              Save Changes
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* AI BOX */
-        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 transition-colors duration-300">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wide flex items-center gap-1">
-              ✨ AI Suggested Reply
-            </span>
-            <div className="flex gap-2">
-              <button 
-                onClick={handleRegenerate}
-                disabled={status !== 'idle'}
-                className="text-purple-600 text-xs font-semibold hover:text-purple-800 disabled:opacity-50"
-              >
-                ↻ Regenerate
-              </button>
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="text-blue-600 text-xs font-semibold hover:text-blue-800"
-              >
-                Edit
-              </button>
-            </div>
-          </div>
-          
-          <p className="text-gray-700 text-sm italic mb-3">"{review.draftReply || draft}"</p>
-          
-          <button 
-            onClick={handlePost}
-            disabled={status !== 'idle'}
-            className={`w-full py-3 text-white text-sm font-bold rounded-lg transition-all shadow-md active:scale-95 flex justify-center items-center gap-2 ${getButtonColor()}`}
-          >
-            {getButtonText()}
+      {/* AI CONTROL BOX */}
+      <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+        
+        {/* TONE SELECTORS (The New Feature) */}
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-1 no-scrollbar">
+          <button onClick={() => handleTone('friendly')} disabled={status !== 'idle'} className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 shadow-sm active:scale-95 whitespace-nowrap hover:bg-indigo-50 hover:border-indigo-200 transition-colors">
+            😊 Friendly
+          </button>
+          <button onClick={() => handleTone('formal')} disabled={status !== 'idle'} className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 shadow-sm active:scale-95 whitespace-nowrap hover:bg-indigo-50 hover:border-indigo-200 transition-colors">
+            👔 Formal
+          </button>
+          <button onClick={() => handleTone('short')} disabled={status !== 'idle'} className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 shadow-sm active:scale-95 whitespace-nowrap hover:bg-indigo-50 hover:border-indigo-200 transition-colors">
+            ⚡ Short
           </button>
         </div>
-      )}
+
+        {/* TEXT AREA (Editable) */}
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="w-full p-3 mb-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
+          rows={3}
+        />
+        
+        {/* ACTION BUTTON */}
+        <button 
+          onClick={handlePost}
+          disabled={status !== 'idle'}
+          className={`w-full py-3 text-white text-sm font-bold rounded-lg transition-all shadow-md active:scale-95 flex justify-center items-center gap-2 ${
+            status === 'generating' ? 'bg-purple-500 animate-pulse' : 
+            status === 'success' || status === 'copying' ? 'bg-green-600' : 
+            'bg-indigo-600 hover:bg-indigo-700'
+          }`}
+        >
+          {getButtonText()}
+        </button>
+      </div>
     </div>
   );
 }
