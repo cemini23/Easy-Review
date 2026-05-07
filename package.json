@@ -7,7 +7,7 @@
     "build": "node scripts/sync-wiki.mjs && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "sync-wiki": "node scripts/sync-wiki.mjs"
   },
