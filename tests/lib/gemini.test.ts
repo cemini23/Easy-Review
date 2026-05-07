@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildPrompt } from '@/lib/gemini';
+import { buildPrompt, validateDraft } from '@/lib/gemini';
 import type { CategoryDef, Operator, Review } from '@/lib/types';
 
 const op: Operator = {
@@ -57,5 +57,38 @@ describe('buildPrompt', () => {
   });
   it('quotes the review text inline', () => {
     expect(buildPrompt({ review, template, operator: op })).toContain('Joey was great');
+  });
+  it('forbids phone numbers, emails, and placeholder slots', () => {
+    const p = buildPrompt({ review, template, operator: op });
+    expect(p.toLowerCase()).toMatch(/phone number/);
+    expect(p.toLowerCase()).toMatch(/email/);
+  });
+  it('clarifies sentence limit applies to the body, not the sign-off', () => {
+    const p = buildPrompt({ review, template, operator: op });
+    expect(p).toMatch(/body/i);
+  });
+});
+
+describe('validateDraft', () => {
+  it('rejects empty', () => {
+    expect(validateDraft('').ok).toBe(false);
+  });
+  it('rejects URL', () => {
+    expect(validateDraft('Thanks! Visit https://example.com').ok).toBe(false);
+  });
+  it('rejects price/promo', () => {
+    expect(validateDraft('Thanks! $5 off your next visit').ok).toBe(false);
+  });
+  it('accepts a 3-sentence reply with a sign-off (sign-off does not count)', () => {
+    const text = `Thanks for the shout-out, Mike! Joey will be glad. See you again soon.\n\n— Joey at Barone Cuts`;
+    expect(validateDraft(text)).toEqual({ ok: true });
+  });
+  it('accepts a 3-sentence reply with hyphen sign-off', () => {
+    const text = `Hi Jamie, thanks for the feedback. We are sorry about the wait. Please reach out so we can make it right.\n\n- Joey`;
+    expect(validateDraft(text)).toEqual({ ok: true });
+  });
+  it('rejects a 4-sentence body even with a sign-off', () => {
+    const text = `One. Two. Three. Four.\n\n— Joey`;
+    expect(validateDraft(text).ok).toBe(false);
   });
 });

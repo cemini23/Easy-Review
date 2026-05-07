@@ -41,3 +41,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local one-off smoke / debug scripts
+smoke-*.mjs
+smoke-*.js
