@@ -32,6 +32,10 @@ v1 will add live Google Business Profile API integration so reviews flow in auto
 
 Next.js 15 App Router · TypeScript · Tailwind 4 · PocketBase · Gemini 2.0 Flash · Octokit · vitest
 
+## Deploy
+
+End-to-end setup (PocketBase + Gemini + GitHub PAT + Vercel + smoke test) is in [docs/deploy.md](docs/deploy.md). About 30 minutes from zero to a deployed instance committing real briefs back to the wiki.
+
 ## Specs
 
 - Design: [docs/superpowers/specs/2026-05-07-easyreview-seogeo-transform-design.md](docs/superpowers/specs/2026-05-07-easyreview-seogeo-transform-design.md)
