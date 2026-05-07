@@ -24,6 +24,7 @@ export default function ReviewCard({
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(draft.operator_edited_text ?? draft.ai_draft ?? '');
   const [overrideFake, setOverrideFake] = useState(false);
+  const [postWarning, setPostWarning] = useState<string | null>(null);
 
   const isFake = draft.category === FAKE_CATEGORY && !overrideFake;
 
@@ -44,8 +45,16 @@ export default function ReviewCard({
   };
 
   const handlePost = () => {
+    setPostWarning(null);
     startTransition(async () => {
-      await postDraft({ draftId: draft.id, operator });
+      const result = await postDraft({ draftId: draft.id, operator });
+      if (!result.ok) {
+        setPostWarning(
+          result.error
+            ? `Brief commit failed: ${result.error}`
+            : `Brief commit failed (${result.brief_status}). Audit log captured the failure.`
+        );
+      }
       onMutate();
     });
   };
@@ -139,6 +148,11 @@ export default function ReviewCard({
               Skip
             </button>
           </div>
+          {postWarning && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded">
+              {postWarning}
+            </p>
+          )}
           {draft.category === '3star_mixed' && (
             <p className="text-xs text-amber-700">
               Reminder: also send a private message to invite this customer to follow up offline.

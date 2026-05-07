@@ -123,7 +123,11 @@ export async function postDraft(args: {
     brief_status: commit.status,
   });
 
-  return { ok: true, brief_status: commit.status, error: commit.error };
+  return {
+    ok: commit.status === 'committed',
+    brief_status: commit.status,
+    error: commit.error,
+  };
 }
 
 export async function skipDraft(args: { draftId: string }): Promise<void> {

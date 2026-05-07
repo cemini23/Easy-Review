@@ -14,6 +14,7 @@ export interface CreateOperatorInput {
 
 export async function createOperator(input: CreateOperatorInput): Promise<Operator> {
   const pb = await authAsAdmin();
+  const password = cryptoRandomPassword();
   const created = await pb.collection('operators').create({
     email: input.email,
     business_name: input.business_name,
@@ -22,8 +23,8 @@ export async function createOperator(input: CreateOperatorInput): Promise<Operat
     services: input.services ?? [],
     staff_names: input.staff_names ?? [],
     active: true,
-    password: cryptoRandomPassword(),
-    passwordConfirm: '',
+    password,
+    passwordConfirm: password,
   });
   return mapOperator(created);
 }
