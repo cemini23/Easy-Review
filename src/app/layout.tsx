@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Davie Pilot | The Digital Maître d'",
-  description: "Micro-SaaS for high-end restaurant operations",
+  title: "Easy Review | Local-business review responses",
+  description: "Reply to Google reviews faster — wiki-backed templates + Gemini drafts",
 };
 
 export default function RootLayout({
@@ -20,14 +20,13 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className={cn(inter.className, "h-full bg-slate-50 text-slate-900")}>
         <div className="flex flex-col min-h-screen">
-          <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur-md">
+          <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md">
             <div className="container flex h-16 items-center justify-between px-4 mx-auto">
               <div className="font-bold text-xl tracking-tight text-indigo-600">
-                DAVIE PILOT
+                EASY REVIEW
               </div>
               <nav className="flex items-center space-x-4">
-                <Link href="/" className="text-sm font-medium hover:text-indigo-600 transition-colors">Reviews</Link>
-                <Link href="/guests" className="text-sm font-medium hover:text-indigo-600 transition-colors">VIPs</Link>
+                <Link href="/" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Reviews</Link>
               </nav>
             </div>
           </header>

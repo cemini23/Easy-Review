@@ -39,19 +39,52 @@ export default function OnboardingForm() {
     });
   };
 
+  const inputCls =
+    'w-full px-3 py-2 border border-slate-300 rounded-md text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500';
+  const labelCls = 'block text-sm font-medium text-slate-700 mb-1';
+
   return (
-    <form action={submit} className="space-y-4 max-w-md mx-auto p-6 bg-white rounded-xl shadow">
-      <h2 className="text-xl font-bold text-gray-900">Set up your shop</h2>
-      <input name="email" type="email" placeholder="Your email" required className="w-full p-2 border rounded" />
-      <input name="business_name" placeholder='Business name (e.g. "Barone Cuts")' required className="w-full p-2 border rounded" />
-      <select name="vertical" required className="w-full p-2 border rounded">
-        {VERTICALS.map((v) => <option key={v} value={v}>{v}</option>)}
-      </select>
-      <input name="sign_off" placeholder='Sign-off (optional, e.g. "— Joey")' className="w-full p-2 border rounded" />
-      <input name="services" placeholder="Services (comma-separated, e.g. fade, beard trim)" className="w-full p-2 border rounded" />
-      <input name="staff_names" placeholder="Staff names (comma-separated, e.g. Joey, Mike)" className="w-full p-2 border rounded" />
+    <form action={submit} className="space-y-5 max-w-md mx-auto p-8 bg-white rounded-xl shadow-sm border border-slate-200">
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900">Set up your shop</h2>
+        <p className="text-sm text-slate-500 mt-1">One-time setup. You can change these later.</p>
+      </div>
+
+      <div>
+        <label htmlFor="email" className={labelCls}>Email</label>
+        <input id="email" name="email" type="email" placeholder="you@yourshop.com" required className={inputCls} />
+      </div>
+
+      <div>
+        <label htmlFor="business_name" className={labelCls}>Business name</label>
+        <input id="business_name" name="business_name" placeholder="Barone Cuts" required className={inputCls} />
+      </div>
+
+      <div>
+        <label htmlFor="vertical" className={labelCls}>Type of business</label>
+        <select id="vertical" name="vertical" required className={inputCls}>
+          {VERTICALS.map((v) => <option key={v} value={v}>{v}</option>)}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="sign_off" className={labelCls}>Sign-off <span className="text-slate-400 font-normal">(optional)</span></label>
+        <input id="sign_off" name="sign_off" placeholder="— Joey at Barone Cuts" className={inputCls} />
+      </div>
+
+      <div>
+        <label htmlFor="services" className={labelCls}>Services <span className="text-slate-400 font-normal">(comma-separated)</span></label>
+        <input id="services" name="services" placeholder="fade, beard trim, kids cut" className={inputCls} />
+      </div>
+
+      <div>
+        <label htmlFor="staff_names" className={labelCls}>Staff names <span className="text-slate-400 font-normal">(comma-separated)</span></label>
+        <input id="staff_names" name="staff_names" placeholder="Joey, Mike, Tony" className={inputCls} />
+      </div>
+
       {error && <p className="text-red-600 text-sm">{error}</p>}
-      <button type="submit" disabled={pending} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg disabled:opacity-50">
+
+      <button type="submit" disabled={pending} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
         {pending ? 'Setting up…' : 'Save'}
       </button>
     </form>
