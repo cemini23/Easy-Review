@@ -142,6 +142,7 @@ export async function listPendingDrafts(args: {
   return list.items.map(mapDraft);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapDraft(row: any): DraftRow {
   return {
     id: row.id,

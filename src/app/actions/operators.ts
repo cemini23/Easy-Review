@@ -41,6 +41,7 @@ export async function getCurrentOperator(): Promise<Operator | null> {
   return mapOperator(list.items[0]);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapOperator(row: any): Operator {
   return {
     id: row.id,

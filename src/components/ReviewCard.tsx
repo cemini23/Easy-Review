@@ -86,11 +86,11 @@ export default function ReviewCard({
       {isFake ? (
         <div className="bg-red-50 border border-red-200 p-3 rounded-lg space-y-2">
           <p className="text-sm text-red-900">
-            This looks like a likely fake or policy-violating review. Per wiki guidance, don't engage emotionally.
+            This looks like a likely fake or policy-violating review. Per wiki guidance, don&apos;t engage emotionally.
           </p>
           <div className="flex gap-2 flex-wrap">
             <button onClick={handleSkip} disabled={pending} className="px-3 py-2 bg-gray-200 text-sm rounded">
-              Don't reply
+              Don&apos;t reply
             </button>
             <button
               onClick={() => window.open(`https://support.google.com/business/answer/4596773`, '_blank')}
@@ -114,7 +114,7 @@ export default function ReviewCard({
               className="w-full p-2 border rounded text-sm"
             />
           ) : (
-            <p className="text-sm text-gray-700 italic">"{text}"</p>
+            <p className="text-sm text-gray-700 italic">&ldquo;{text}&rdquo;</p>
           )}
           <div className="flex gap-2 flex-wrap">
             {editing ? (
