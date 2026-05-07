@@ -1,3 +1,4 @@
+import { Octokit } from '@octokit/rest';
 import type { Category, Vertical } from '@/lib/types';
 
 export interface SerializeBriefArgs {
@@ -63,4 +64,58 @@ export function briefFilename(args: { postedAt: string; gbpReviewId: string }): 
     .replace(/^-|-$/g, '');
   const short = sanitized.slice(0, 9);
   return `${date}_${short}.md`;
+}
+
+export interface CommitBriefArgs {
+  filename: string;
+  content: string;
+}
+
+export interface CommitBriefResult {
+  status: 'committed' | 'failed';
+  sha?: string;
+  htmlUrl?: string;
+  error?: string;
+}
+
+export async function commitBriefToWiki(
+  args: CommitBriefArgs
+): Promise<CommitBriefResult> {
+  const owner = process.env.WIKI_GITHUB_OWNER;
+  const repo = process.env.WIKI_GITHUB_REPO;
+  const branch = process.env.WIKI_GITHUB_BRANCH ?? 'main';
+  const auth = process.env.WIKI_GITHUB_PAT;
+
+  if (!owner || !repo || !auth) {
+    return {
+      status: 'failed',
+      error: 'WIKI_GITHUB_OWNER / WIKI_GITHUB_REPO / WIKI_GITHUB_PAT not set',
+    };
+  }
+
+  const octokit = new Octokit({ auth });
+  const path = `briefs/${args.filename}`;
+  const message = `add: brief — ${args.filename}`;
+  const contentBase64 = Buffer.from(args.content, 'utf8').toString('base64');
+
+  try {
+    const res = await octokit.rest.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path,
+      message,
+      content: contentBase64,
+      branch,
+    });
+    return {
+      status: 'committed',
+      sha: res.data.commit.sha ?? undefined,
+      htmlUrl: res.data.commit.html_url ?? undefined,
+    };
+  } catch (e) {
+    return {
+      status: 'failed',
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
 }
