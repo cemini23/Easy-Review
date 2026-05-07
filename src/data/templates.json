@@ -1,0 +1,131 @@
+{
+  "version": "2026-05-08",
+  "source": "wiki/concepts/review-response-templates.md",
+  "categories": [
+    {
+      "id": "5star_specific",
+      "label": "5-star with specific praise",
+      "trigger": {
+        "rating": 5,
+        "has_specific_praise": true
+      },
+      "response_goal": "Reinforce + thank, vary wording",
+      "templates": [
+        {
+          "example_inbound": "Joey was great! Got me cleaned up for my brother's wedding next week. Quick fade, beard trim. Will be back.\"   — ★★★★★, Mike R., Google",
+          "example_response": "Thanks for the love, Mike — appreciate you trusting us with the wedding cut! Joey will be glad to hear it. See you next time.",
+          "rules": [
+            "Reference the specific service mentioned (fade, beard trim) in 1 of every 3 responses, not all (otherwise it looks templated)",
+            "If a barber's name is in the review, name them back (\"Joey will be glad to hear it\"). Personal accountability + cross-barber discoverability for the customer's next visit.",
+            "Use first name only (privacy + warmth)",
+            "1-2 sentences max",
+            "Don't include the shop name in the response (it's already attributed to your listing) unless you're disambiguating between Shop 1 and Shop 2",
+            "Don't include URLs, prices, or promo codes (looks transactional + may flag platform spam filters)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "5star_generic",
+      "label": "5-star, generic",
+      "trigger": {
+        "rating": 5,
+        "has_specific_praise": false
+      },
+      "response_goal": "Brief thanks, low effort",
+      "templates": [
+        {
+          "example_inbound": "Best barber in town!\"   — ★★★★★, Anonymous, Google",
+          "example_response": "Appreciate it! Thanks for the support — see you for the next one.",
+          "rules": [
+            "1 sentence is enough; padding makes it look auto-generated",
+            "Resist the urge to upsell (\"come back for our XYZ service!\") — feels mercenary"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4star",
+      "label": "4-star, would recommend but…",
+      "trigger": {
+        "rating": 4
+      },
+      "response_goal": "Acknowledge the gap, invite return",
+      "templates": [
+        {
+          "example_inbound": "Cut was good, place was a little crowded but worth the wait.\"   — ★★★★☆, Sarah T., Google",
+          "example_response": "Thanks Sarah — glad the cut hit. The Saturday rush is real; if midweek works for you, walk-in waits are typically way shorter. Either way, see you next time.",
+          "rules": [
+            "Acknowledge the negative observation directly (don't pretend it wasn't there)",
+            "If there's a practical mitigation (slower day, online booking, etc.), mention it lightly",
+            "End on the future-visit pivot"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3star_mixed",
+      "label": "3-star, mixed",
+      "trigger": {
+        "rating": 3
+      },
+      "response_goal": "Take seriously, route to private channel",
+      "templates": [
+        {
+          "example_inbound": "Wait was 45 minutes past my appointment time. Cut was fine but I had to leave for work before they finished cleaning up the back. Won't be back.\"   — ★★☆☆☆, Carlos M., Google",
+          "example_response": "Hey Carlos, thanks for flagging this — that wait is way out of line for an appointment, and you shouldn't have had to choose between a finish and getting to work. I'd like to look into what happened. Can you reach out at [phone] or [email]? — [Operator name]",
+          "rules": [
+            "**Acknowledge the specific issue as described** (\"that wait is way out of line\"), without confirming disputed details (\"our records show…\" — never publicly)",
+            "**Take responsibility for the OPERATIONAL gap** (the wait), even if the cut was fine. The customer's complaint is about the experience, not the haircut.",
+            "**Offer a private channel** — phone or email, not DM (DM channels vary by platform; phone is universal)",
+            "**Sign with the operator's first name** — signals personal accountability vs corporate boilerplate",
+            "**DO NOT**:"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1_2star_complaint",
+      "label": "1-2 star, real complaint",
+      "trigger": {
+        "rating": [
+          1,
+          2
+        ]
+      },
+      "response_goal": "De-escalate publicly, fix privately",
+      "templates": [
+        {
+          "example_inbound": "",
+          "example_response": "We're sorry — that's not the experience we want. Please reach out so we can make it right.",
+          "rules": [
+            "No defensiveness",
+            "Move to private channel",
+            "Never name customer specifics that they did not include"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1star_fake",
+      "label": "1-star, likely fake / policy-violating",
+      "trigger": {
+        "rating": 1,
+        "has_specific_praise": false
+      },
+      "response_goal": "Hold the line, do NOT engage emotionally",
+      "templates": [
+        {
+          "example_inbound": "Worst place ever. Manager was rude. Place is filthy.\"   — ★☆☆☆☆, John D., Google (account created 3 days ago, no other reviews)",
+          "example_response": "Hi John — we want to take this seriously, but we don't have a record of you visiting us. Could you reach out at [phone] or [email] with the date of your appointment so we can look into what happened? — [Operator name]",
+          "rules": [
+            "**Don't accuse the reviewer of being fake publicly** — looks bad to readers regardless of whether they are. Phrase it as \"we don't have a record of you visiting\"",
+            "**Don't get angry** — your response is permanent and visible to every future customer evaluating you",
+            "**Don't engage in back-and-forth** — one calm response, then escalate via platform reporting",
+            "**Don't ask other customers to flag the review** — review-stacking on the reporter side can trigger penalties"
+          ]
+        }
+      ]
+    }
+  ]
+}
