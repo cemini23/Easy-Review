@@ -57,11 +57,13 @@ In the admin UI (`<url>/_/`), create three collections:
 - `services` (json, default `[]`)
 - `staff_names` (json, default `[]`)
 - `active` (bool, default true)
+- `created` (autodate, on create only)
+- `updated` (autodate, on create + on update)
 
 **`drafts`** (Base collection):
-- `operator` (relation → operators, required)
+- `operator` (relation → operators, required, cascadeDelete)
 - `review_author` (text, required)
-- `review_rating` (number, required)
+- `review_rating` (number, required, min 1, max 5)
 - `review_date` (date, required)
 - `review_text` (text, required)
 - `category` (text, required)
@@ -73,14 +75,19 @@ In the admin UI (`<url>/_/`), create three collections:
 - `brief_status` (text)
 - `brief_sha` (text)
 - `brief_html_url` (text)
+- `created` (autodate, on create only)
+- `updated` (autodate, on create + on update)
 
 **`audit_log`** (Base collection):
 - `operator` (relation → operators)
 - `draft` (relation → drafts)
 - `event` (text, required)
 - `payload` (json)
+- `created` (autodate, on create only)
 
-Set API rules to `@request.auth.id != ""` on all three (admin-only access for v0).
+Set API rules to `@request.auth.id != ""` on all three (superuser-only access for v0).
+
+**Important — PocketBase v0.23+ change.** Older docs assumed `created` and `updated` were auto-added system fields. They are not anymore. You must add them explicitly as `autodate` fields, otherwise sorting by `+created` (which the app does) returns HTTP 400. The schemas above already include them.
 
 ## Step 2 — Get a Gemini API key (2 min)
 
@@ -220,7 +227,16 @@ Operator-facing URL: `https://easyreview-<yourshop>.vercel.app`
 ## Troubleshooting
 
 **Onboarding never completes / redirect loop on `/onboarding`**
-PocketBase admin auth is failing. Verify `POCKETBASE_URL`, `POCKETBASE_ADMIN_EMAIL`, `POCKETBASE_ADMIN_PASSWORD` exactly. Test by curling `<url>/api/admins/auth-with-password` with your creds.
+PocketBase superuser auth is failing. Verify `POCKETBASE_URL`, `POCKETBASE_ADMIN_EMAIL`, `POCKETBASE_ADMIN_PASSWORD` exactly. Test directly:
+```
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"identity":"<email>","password":"<password>"}' \
+  <POCKETBASE_URL>/api/collections/_superusers/auth-with-password
+```
+A 200 with a `token` field means auth is fine; check the dev server log for downstream errors instead.
+
+**`HTTP 400 Something went wrong` on `/api/collections/operators/records?sort=+created`**
+The `created` / `updated` autodate fields are missing from the collection. PocketBase v0.23+ no longer adds them automatically. Edit the operators (and drafts, audit_log) collections in the admin UI and add `created` / `updated` as `autodate` fields per the Step 1 schemas.
 
 **"Brief commit failed: Resource not accessible by personal access token"**
 PAT scope is wrong. Re-create with **Contents: Read and write** and verify the repository is in "Only select repositories" → wiki repo.

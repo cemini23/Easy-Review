@@ -19,7 +19,7 @@ export async function authAsAdmin(): Promise<PocketBase> {
     throw new Error('POCKETBASE_ADMIN_EMAIL / POCKETBASE_ADMIN_PASSWORD not set');
   }
   if (!pb.authStore.isValid) {
-    await pb.admins.authWithPassword(email, password);
+    await pb.collection('_superusers').authWithPassword(email, password);
   }
   return pb;
 }
