@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "author": "Michael S.",
+    "rating": 5,
+    "comment": "The dry-aged ribeye was incredible. Best steakhouse in Fort Lauderdale!",
+    "date": "2026-02-01",
+    "source": "Google"
+  },
+  {
+    "id": "2",
+    "author": "Sarah J.",
+    "rating": 2,
+    "comment": "Waited 45 minutes for our table even with a reservation. The sea bass was overcooked.",
+    "date": "2026-02-03",
+    "source": "Google"
+  },
+  {
+    "id": "3",
+    "author": "David L.",
+    "rating": 4,
+    "comment": "Great atmosphere and solid wine list. Service was a bit slow during the rush.",
+    "date": "2026-02-05",
+    "source": "Google"
+  }
+]
