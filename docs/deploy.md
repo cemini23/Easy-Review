@@ -13,21 +13,38 @@ This is the operational counterpart to the [v0 plan](superpowers/plans/2026-05-0
 
 ## Step 1 — Provision PocketBase (5 min)
 
-EasyReview uses PocketBase as its backend (operators table, drafts table, audit_log table). Easiest path is the hosted free tier; self-host is also fine.
+EasyReview uses PocketBase as its backend (operators table, drafts table, audit_log table). Three paths, pick what fits:
 
-### Option A: PocketHost (free tier)
+| Path | Cost | When to use |
+|------|------|-------------|
+| **A. Local binary** | $0 | Evaluating the loop on your laptop. Not always-on, so unsuitable for an operator who'll click during business hours from anywhere. |
+| **B. PocketHost (managed)** | $5/mo per instance | Production. Fully managed, daily backups, admin UI, zero DevOps. Trial is 7 days. |
+| **C. Self-host on a VPS** | ~$4-6/mo (Hetzner / DigitalOcean / Fly) | You already run a VPS or want to consolidate hosting. More control, more ops work. |
 
-1. Sign up at https://pockethost.io
+### Option A: Local binary (free, dev/eval)
+
+1. Download the PocketBase binary for your OS from https://pocketbase.io/docs/
+2. Run `./pocketbase serve` — it'll print a URL (default `http://127.0.0.1:8090`)
+3. Visit `<url>/_/` and create your admin account
+4. `POCKETBASE_URL=http://127.0.0.1:8090` for `.env.local`
+
+Caveat: replies you "Post" only commit briefs to GitHub if your laptop is running and reachable. Fine for testing the loop end-to-end; not fine for an operator who needs to triage reviews from a phone.
+
+### Option B: PocketHost ($5/mo, managed)
+
+1. Sign up at https://pockethost.io (7-day trial, then $5/mo per instance on the Starter plan)
 2. Create a new instance — pick any subdomain (`easyreview-<yourshop>` works)
 3. Note the URL — it'll look like `https://easyreview-yourshop.pockethost.io`
 4. Open the admin UI at `<your-url>/_/`
 5. Create an admin account when prompted — save the email + password, you'll need them as env vars
 
-### Option B: Self-host
+### Option C: Self-host on a VPS
 
-1. Download the PocketBase binary for your OS from https://pocketbase.io/docs/
-2. Run `./pocketbase serve` — it'll print a URL (default `http://127.0.0.1:8090`)
-3. Visit `<url>/_/` and create your admin account
+1. Provision a small VPS (Hetzner CX11 ~€4/mo, DigitalOcean basic droplet $4/mo, Fly.io shared-CPU ~$2-5/mo depending on usage)
+2. Download the PocketBase binary, run behind a reverse proxy (Caddy is easiest for auto-TLS), persist the `pb_data/` directory on a volume
+3. Set up nightly backups of `pb_data/` (PocketBase has a built-in `--backupsDir` flag and an admin UI snapshot button)
+
+PocketBase's official deploy guide is at https://pocketbase.io/docs/going-to-production/.
 
 ### Create the collections
 
@@ -71,7 +88,7 @@ Set API rules to `@request.auth.id != ""` on all three (admin-only access for v0
 2. Click "Create API key"
 3. Copy the key — starts with `AIza...`
 
-The free tier is generous; v0's paste flow will not exhaust it for a single operator.
+The free tier (1.5K requests/day) won't be exhausted by a single operator's paste flow.
 
 ## Step 3 — Create a fine-scoped GitHub PAT (3 min)
 
@@ -221,7 +238,7 @@ This is a known anti-pattern the wiki forbids. Check `src/lib/gemini.ts:validate
 
 - **Rotation:** rotate the GitHub PAT every 90 days. Set a calendar reminder.
 - **Backup:** PocketBase data lives only in PocketHost (or your self-host). Snapshot weekly: `<url>/_/#/settings/backups`. Briefs are durable on GitHub.
-- **Cost:** PocketHost free tier + Gemini free tier + Vercel free tier = $0/mo for a single operator. Scale would push PocketHost into a paid tier (~$5/mo) first.
+- **Cost:** for a single operator, expect ~$5/mo total — PocketHost Starter ($5/mo) is the only paid line; Gemini Flash free tier (1.5K req/day) and Vercel Hobby ($0) cover the rest. Self-hosting PocketBase on an existing VPS drops it to $0 marginal.
 - **Wiki ingestion cadence:** monthly, or any time `briefs/*.md` count meaningfully exceeds the last ingest. Run via the prompt at [`prompts/ingest-easy-review-briefs.md`](https://github.com/cemini23/SEO-GEO-B-M-Wiki/blob/main/prompts/ingest-easy-review-briefs.md) in the wiki repo.
 - **Adding a second operator:** v0 doesn't ship multi-tenant. To run a second operator, deploy a second instance with a separate PocketBase + GitHub PAT.
 
