@@ -9,8 +9,28 @@ import {
   fetchHomepageMeta,
   fetchPlaceDetails,
   fetchPageSpeed,
+  isValidPublicHttpUrl,
 } from '@/lib/site-health';
 import type { SiteHealthSnapshot } from '@/lib/types';
+
+/**
+ * PocketBase v0.23+ surfaces unique-constraint failures as 400 with a
+ * `data` object whose field entries carry `code: 'validation_not_unique'`.
+ * Anything else (other 400s, 5xx, network) is a real failure that should
+ * propagate, not get masked by the race-recovery path.
+ */
+function isUniqueConstraintError(e: unknown): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const err = e as any;
+  if (err?.status !== 400) return false;
+  if (!err?.data || typeof err.data !== 'object') return false;
+  return Object.values(err.data).some(
+    (v) =>
+      typeof v === 'object' &&
+      v !== null &&
+      (v as { code?: string }).code === 'validation_not_unique',
+  );
+}
 
 export async function fetchSiteSnapshot(operatorId: string): Promise<SiteHealthSnapshot> {
   const pb = await authAsAdmin();
@@ -51,10 +71,14 @@ export async function fetchSiteSnapshot(operatorId: string): Promise<SiteHealthS
         fetched_at,
       });
     } catch (createErr) {
-      // Race-safety: a concurrent refresh may have inserted the row between
-      // our read and write. With the unique index on operator_id, that race
-      // surfaces here as a constraint violation. Re-read and update; if the
-      // re-read also fails, propagate the original create error.
+      // Race-safety: only attempt re-read+update when the create failure is
+      // identifiably a unique-constraint violation (i.e. a concurrent writer
+      // won the insert). Any other failure — validation error, server error,
+      // network — must propagate so callers see the real cause instead of
+      // having it silently masked by an update against an unrelated row.
+      if (!isUniqueConstraintError(createErr)) {
+        throw createErr;
+      }
       let raceRow: { id: string } | null = null;
       try {
         raceRow = await collection.getFirstListItem(filter);
@@ -98,6 +122,12 @@ export async function getSnapshot(operatorId: string): Promise<SiteHealthSnapsho
 async function runWebsite(websiteUrl: string): Promise<SiteHealthSnapshot['website']> {
   if (!websiteUrl) {
     return { https: null, schema: null, sitemap: null, robots: null, homepage: null, error: 'website_url not configured' };
+  }
+  if (!isValidPublicHttpUrl(websiteUrl)) {
+    return {
+      https: null, schema: null, sitemap: null, robots: null, homepage: null,
+      error: 'website_url must be a public http(s) URL (no localhost or private addresses)',
+    };
   }
   const [https, schema, sitemap, robots, homepage] = await Promise.all([
     fetchHttps(websiteUrl),

@@ -1,15 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the fetchers — orchestrator test doesn't care how they fetch.
-vi.mock('@/lib/site-health', () => ({
-  fetchHttps: vi.fn(),
-  fetchSchema: vi.fn(),
-  fetchSitemap: vi.fn(),
-  fetchRobots: vi.fn(),
-  fetchHomepageMeta: vi.fn(),
-  fetchPlaceDetails: vi.fn(),
-  fetchPageSpeed: vi.fn(),
-}));
+// Keep `isValidPublicHttpUrl` REAL so the website-URL validation path is
+// exercised against actual logic (not a stub returning a fixed value).
+vi.mock('@/lib/site-health', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/site-health')>('@/lib/site-health');
+  return {
+    ...actual,
+    fetchHttps: vi.fn(),
+    fetchSchema: vi.fn(),
+    fetchSitemap: vi.fn(),
+    fetchRobots: vi.fn(),
+    fetchHomepageMeta: vi.fn(),
+    fetchPlaceDetails: vi.fn(),
+    fetchPageSpeed: vi.fn(),
+  };
+});
 
 // Mock PocketBase admin auth.
 const operatorRow = {
@@ -40,7 +46,11 @@ const mocks = fetchers as unknown as Record<keyof typeof fetchers, ReturnType<ty
 
 describe('fetchSiteSnapshot', () => {
   beforeEach(() => {
-    Object.values(mocks).forEach((m) => m.mockReset());
+    // `mocks` may include the real `isValidPublicHttpUrl` (kept un-mocked
+    // via importActual). Only reset entries that are actual vi mocks.
+    Object.values(mocks).forEach((m) => {
+      if (vi.isMockFunction(m)) m.mockReset();
+    });
     snapshotsCollection.getFirstListItem.mockReset();
     snapshotsCollection.create.mockReset();
     snapshotsCollection.update.mockReset();
@@ -149,9 +159,10 @@ describe('fetchSiteSnapshot', () => {
   });
 
   it('propagates create error when fallback re-read also fails', async () => {
-    // create() fails for some reason other than a winnable race; the
-    // re-read also returns 404 (i.e. truly no row). The original create
-    // error should propagate so callers see the real failure cause.
+    // create() fails with a winnable-race-shaped error (unique-constraint)
+    // BUT the re-read also returns 404 (the racing writer must have rolled
+    // back, or some other anomaly). The original create error should
+    // propagate so callers see the real failure cause.
     mocks.fetchHttps.mockResolvedValue(true);
     mocks.fetchSchema.mockResolvedValue(null);
     mocks.fetchSitemap.mockResolvedValue(false);
@@ -160,11 +171,71 @@ describe('fetchSiteSnapshot', () => {
     snapshotsCollection.getFirstListItem
       .mockRejectedValueOnce({ status: 404 })
       .mockRejectedValueOnce({ status: 404 });
-    const createErr = { status: 400, data: { snapshot_data: { code: 'invalid_json' } } };
+    const createErr = {
+      status: 400,
+      data: { operator_id: { code: 'validation_not_unique' } },
+    };
     snapshotsCollection.create.mockRejectedValue(createErr);
 
     await expect(fetchSiteSnapshot('op1')).rejects.toEqual(createErr);
     expect(snapshotsCollection.update).not.toHaveBeenCalled();
+  });
+
+  it('propagates non-unique-constraint 400 errors WITHOUT retrying re-read', async () => {
+    // A 400 with a different validation code (e.g. invalid JSON in
+    // snapshot_data) is NOT a winnable race. The action must propagate
+    // it directly without trying a fallback re-read+update — otherwise
+    // a coincidentally-existing row would mask the real error.
+    mocks.fetchHttps.mockResolvedValue(true);
+    mocks.fetchSchema.mockResolvedValue(null);
+    mocks.fetchSitemap.mockResolvedValue(false);
+    mocks.fetchRobots.mockResolvedValue(false);
+    mocks.fetchHomepageMeta.mockResolvedValue(null);
+    snapshotsCollection.getFirstListItem.mockRejectedValueOnce({ status: 404 });
+    const createErr = {
+      status: 400,
+      data: { snapshot_data: { code: 'validation_invalid_json' } },
+    };
+    snapshotsCollection.create.mockRejectedValue(createErr);
+
+    await expect(fetchSiteSnapshot('op1')).rejects.toEqual(createErr);
+    // Crucially: only the initial read happened, never the fallback re-read.
+    expect(snapshotsCollection.getFirstListItem).toHaveBeenCalledTimes(1);
+    expect(snapshotsCollection.update).not.toHaveBeenCalled();
+  });
+
+  it('propagates non-400 create errors (e.g. 500) WITHOUT retrying re-read', async () => {
+    mocks.fetchHttps.mockResolvedValue(true);
+    mocks.fetchSchema.mockResolvedValue(null);
+    mocks.fetchSitemap.mockResolvedValue(false);
+    mocks.fetchRobots.mockResolvedValue(false);
+    mocks.fetchHomepageMeta.mockResolvedValue(null);
+    snapshotsCollection.getFirstListItem.mockRejectedValueOnce({ status: 404 });
+    const createErr = { status: 500, message: 'pocketbase down' };
+    snapshotsCollection.create.mockRejectedValue(createErr);
+
+    await expect(fetchSiteSnapshot('op1')).rejects.toEqual(createErr);
+    expect(snapshotsCollection.getFirstListItem).toHaveBeenCalledTimes(1);
+    expect(snapshotsCollection.update).not.toHaveBeenCalled();
+  });
+
+  it('returns a clear error when website_url is set to a private/invalid host', async () => {
+    operatorsCollection.getOne.mockResolvedValueOnce({
+      ...operatorRow,
+      website_url: 'http://192.168.1.1',
+    });
+    snapshotsCollection.getFirstListItem.mockRejectedValue({ status: 404 });
+    snapshotsCollection.create.mockResolvedValue({ id: 'snap1' });
+
+    const result = await fetchSiteSnapshot('op1');
+    expect(result.website.https).toBeNull();
+    expect(result.website.error).toMatch(/public http\(s\) URL/);
+    // None of the website fetchers should have been called.
+    expect(mocks.fetchHttps).not.toHaveBeenCalled();
+    expect(mocks.fetchSchema).not.toHaveBeenCalled();
+    expect(mocks.fetchSitemap).not.toHaveBeenCalled();
+    expect(mocks.fetchRobots).not.toHaveBeenCalled();
+    expect(mocks.fetchHomepageMeta).not.toHaveBeenCalled();
   });
 
   it('returns an empty website snapshot when website_url is missing', async () => {

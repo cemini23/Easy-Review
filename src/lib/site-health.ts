@@ -2,6 +2,41 @@ import type { SiteHealthSnapshot } from '@/lib/types';
 
 const TIMEOUT_MS = 10_000;
 
+/**
+ * Validate that a string is a public http(s) URL safe to fetch from the
+ * server. Rejects:
+ *   - non-http(s) protocols (file://, ftp://, etc.)
+ *   - localhost / loopback (127.0.0.0/8, 0.0.0.0)
+ *   - RFC1918 private ranges (10/8, 172.16/12, 192.168/16)
+ *   - link-local (169.254/16)
+ *   - mDNS / internal TLDs (.local, .internal)
+ *
+ * Defends against an operator misconfiguring `website_url` to a private
+ * address that the server could reach but the public internet can't.
+ * Not a complete SSRF guard (DNS rebinding, IPv6 ranges, redirects all
+ * unhandled) — just a sane first line.
+ */
+export function isValidPublicHttpUrl(input: string | null | undefined): boolean {
+  if (!input) return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+  const host = parsed.hostname.toLowerCase();
+  if (!host) return false;
+  if (host === 'localhost' || host === '0.0.0.0') return false;
+  if (host.endsWith('.local') || host.endsWith('.internal')) return false;
+  if (/^127\./.test(host)) return false;
+  if (/^10\./.test(host)) return false;
+  if (/^192\.168\./.test(host)) return false;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return false;
+  if (/^169\.254\./.test(host)) return false;
+  return true;
+}
+
 async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);

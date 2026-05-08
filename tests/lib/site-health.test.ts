@@ -7,7 +7,64 @@ import {
   fetchHomepageMeta,
   fetchPlaceDetails,
   fetchPageSpeed,
+  isValidPublicHttpUrl,
 } from '@/lib/site-health';
+
+describe('isValidPublicHttpUrl', () => {
+  it('accepts a public https URL', () => {
+    expect(isValidPublicHttpUrl('https://baronescuts.com')).toBe(true);
+  });
+  it('accepts a public http URL (some operators don\'t have TLS yet)', () => {
+    expect(isValidPublicHttpUrl('http://example.com')).toBe(true);
+  });
+  it('accepts a URL with a path + query', () => {
+    expect(isValidPublicHttpUrl('https://example.com/foo?bar=1')).toBe(true);
+  });
+  it('rejects empty string', () => {
+    expect(isValidPublicHttpUrl('')).toBe(false);
+  });
+  it('rejects null/undefined', () => {
+    expect(isValidPublicHttpUrl(null)).toBe(false);
+    expect(isValidPublicHttpUrl(undefined)).toBe(false);
+  });
+  it('rejects malformed strings', () => {
+    expect(isValidPublicHttpUrl('not a url')).toBe(false);
+    expect(isValidPublicHttpUrl('example.com')).toBe(false);
+  });
+  it('rejects non-http(s) protocols', () => {
+    expect(isValidPublicHttpUrl('file:///etc/passwd')).toBe(false);
+    expect(isValidPublicHttpUrl('ftp://example.com')).toBe(false);
+    expect(isValidPublicHttpUrl('javascript:alert(1)')).toBe(false);
+  });
+  it('rejects localhost', () => {
+    expect(isValidPublicHttpUrl('http://localhost')).toBe(false);
+    expect(isValidPublicHttpUrl('https://localhost:3000/admin')).toBe(false);
+  });
+  it('rejects loopback (127/8)', () => {
+    expect(isValidPublicHttpUrl('http://127.0.0.1')).toBe(false);
+    expect(isValidPublicHttpUrl('http://127.5.5.5')).toBe(false);
+  });
+  it('rejects 0.0.0.0', () => {
+    expect(isValidPublicHttpUrl('http://0.0.0.0')).toBe(false);
+  });
+  it('rejects RFC1918 private ranges', () => {
+    expect(isValidPublicHttpUrl('http://10.0.0.1')).toBe(false);
+    expect(isValidPublicHttpUrl('http://192.168.1.1')).toBe(false);
+    expect(isValidPublicHttpUrl('http://172.16.0.1')).toBe(false);
+    expect(isValidPublicHttpUrl('http://172.31.255.255')).toBe(false);
+  });
+  it('accepts IPs just outside 172.16/12 (172.15.x.x and 172.32.x.x)', () => {
+    expect(isValidPublicHttpUrl('http://172.15.0.1')).toBe(true);
+    expect(isValidPublicHttpUrl('http://172.32.0.1')).toBe(true);
+  });
+  it('rejects link-local 169.254/16', () => {
+    expect(isValidPublicHttpUrl('http://169.254.169.254')).toBe(false);
+  });
+  it('rejects mDNS / internal TLDs', () => {
+    expect(isValidPublicHttpUrl('http://printer.local')).toBe(false);
+    expect(isValidPublicHttpUrl('http://api.internal')).toBe(false);
+  });
+});
 
 describe('fetchHttps', () => {
   beforeEach(() => { vi.stubGlobal('fetch', vi.fn()); });
