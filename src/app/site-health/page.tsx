@@ -2,8 +2,17 @@ import { redirect } from 'next/navigation';
 import { getCurrentOperator } from '@/app/actions/operators';
 import { fetchSiteSnapshot, getSnapshot } from '@/app/actions/site-health';
 import SiteHealthCard from '@/components/SiteHealthCard';
-import SiteHealthSignalRow, { SignalStatus } from '@/components/SiteHealthSignalRow';
+import SiteHealthSignalRow from '@/components/SiteHealthSignalRow';
 import type { SiteHealthSnapshot } from '@/lib/types';
+import {
+  statusBool,
+  ratingStatus,
+  titleStatus,
+  descStatus,
+  scoreStatus,
+  lcpStatus,
+  clsStatus,
+} from '@/lib/site-health-status';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
@@ -226,42 +235,3 @@ function PageSpeedSection({ snapshot, links }: { snapshot: SiteHealthSnapshot | 
   );
 }
 
-function statusBool(b: boolean | null | undefined): SignalStatus {
-  if (b === true) return 'ok';
-  if (b === false) return 'warn';
-  return 'info';
-}
-function ratingStatus(n: number | null | undefined): SignalStatus {
-  if (n == null) return 'info';
-  if (n >= 4.5) return 'ok';
-  if (n >= 4.0) return 'warn';
-  return 'fail';
-}
-function titleStatus(n: number | null | undefined): SignalStatus {
-  if (n == null) return 'info';
-  if (n >= 30 && n <= 60) return 'ok';
-  return 'warn';
-}
-function descStatus(n: number | null | undefined): SignalStatus {
-  if (n == null) return 'info';
-  if (n >= 70 && n <= 160) return 'ok';
-  return 'warn';
-}
-function scoreStatus(n: number | null | undefined): SignalStatus {
-  if (n == null) return 'info';
-  if (n >= 90) return 'ok';
-  if (n >= 50) return 'warn';
-  return 'fail';
-}
-function lcpStatus(ms: number | null | undefined): SignalStatus {
-  if (ms == null) return 'info';
-  if (ms <= 2500) return 'ok';
-  if (ms <= 4000) return 'warn';
-  return 'fail';
-}
-function clsStatus(cls: number | null | undefined): SignalStatus {
-  if (cls == null) return 'info';
-  if (cls <= 0.1) return 'ok';
-  if (cls <= 0.25) return 'warn';
-  return 'fail';
-}

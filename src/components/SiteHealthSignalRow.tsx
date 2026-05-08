@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import type { SignalStatus } from '@/lib/site-health-status';
 
-export type SignalStatus = 'ok' | 'warn' | 'fail' | 'info';
+// Re-export for backward compatibility with existing import sites.
+export type { SignalStatus };
 
 export interface SiteHealthSignalRowProps {
   label: string;
