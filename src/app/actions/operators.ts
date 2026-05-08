@@ -10,6 +10,8 @@ export interface CreateOperatorInput {
   sign_off?: string;
   services?: string[];
   staff_names?: string[];
+  website_url?: string;
+  gbp_place_id?: string;
 }
 
 export async function createOperator(input: CreateOperatorInput): Promise<Operator> {
@@ -22,6 +24,8 @@ export async function createOperator(input: CreateOperatorInput): Promise<Operat
     sign_off: input.sign_off ?? '',
     services: input.services ?? [],
     staff_names: input.staff_names ?? [],
+    website_url: input.website_url ?? '',
+    gbp_place_id: input.gbp_place_id ?? '',
     active: true,
     password,
     passwordConfirm: password,
@@ -53,5 +57,7 @@ function mapOperator(row: any): Operator {
     services: row.services ?? [],
     staff_names: row.staff_names ?? [],
     active: row.active ?? true,
+    website_url: row.website_url || undefined,
+    gbp_place_id: row.gbp_place_id || undefined,
   };
 }

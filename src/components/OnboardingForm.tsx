@@ -31,6 +31,8 @@ export default function OnboardingForm() {
             .split(',')
             .map((s) => s.trim())
             .filter(Boolean),
+          website_url: String(formData.get('website_url') || '').trim() || undefined,
+          gbp_place_id: String(formData.get('gbp_place_id') || '').trim() || undefined,
         });
         router.push('/');
       } catch (e) {
@@ -80,6 +82,16 @@ export default function OnboardingForm() {
       <div>
         <label htmlFor="staff_names" className={labelCls}>Staff names <span className="text-slate-400 font-normal">(comma-separated)</span></label>
         <input id="staff_names" name="staff_names" placeholder="Joey, Mike, Tony" className={inputCls} />
+      </div>
+
+      <div>
+        <label htmlFor="website_url" className={labelCls}>Website URL <span className="text-slate-400 font-normal">(optional, for Site Health)</span></label>
+        <input id="website_url" name="website_url" type="url" placeholder="https://yourshop.com" className={inputCls} />
+      </div>
+
+      <div>
+        <label htmlFor="gbp_place_id" className={labelCls}>Google place_id <span className="text-slate-400 font-normal">(optional, for Site Health)</span></label>
+        <input id="gbp_place_id" name="gbp_place_id" placeholder="ChIJ..." className={inputCls} />
       </div>
 
       {error && <p className="text-red-600 text-sm">{error}</p>}
