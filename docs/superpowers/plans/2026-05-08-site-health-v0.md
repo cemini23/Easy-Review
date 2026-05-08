@@ -890,8 +890,8 @@ describe('fetchHomepageMeta', () => {
     expect(result).toEqual({
       title: 'Barone Cuts — best fades in Northeast Philly',
       description: 'Walk-in barbershop. Fades, beard trims, kids cuts. 7 days.',
-      titleLength: 47,
-      descriptionLength: 56,
+      titleLength: 44,
+      descriptionLength: 58,
     });
   });
 
