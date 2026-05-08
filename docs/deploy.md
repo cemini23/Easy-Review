@@ -143,6 +143,19 @@ WIKI_GITHUB_BRANCH=main
 
 Leave the v1-only OAuth vars blank.
 
+## Step 4.5 — (Optional) Get a Google Maps Platform API key (3 min)
+
+The Site Health tab works without this — you'll see HTTPS, schema, sitemap, robots, and homepage meta signals from your website. Add a key to also see your GBP listing's rating, review count, photos, hours, and your website's PageSpeed Insights score.
+
+1. Go to https://console.cloud.google.com → New Project (or pick an existing one)
+2. APIs & Services → Library → enable both **Places API** and **PageSpeed Insights API**
+3. APIs & Services → Credentials → Create Credentials → API Key
+4. (Recommended) Restrict the key to those two APIs and to your server IP
+5. Add to `.env.local`: `GOOGLE_MAPS_API_KEY=...`
+6. Add to your operator settings: the GBP `place_id` for your shop. Look it up at https://developers.google.com/maps/documentation/places/web-service/place-id
+
+For a single operator with manual refresh, expect to stay well within the $200/month free credit Google grants on Maps Platform.
+
 ## Step 5 — Sync the wiki templates + run the dev server (3 min)
 
 ```bash
