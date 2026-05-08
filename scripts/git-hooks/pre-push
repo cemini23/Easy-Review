@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# pre-push: gate every push behind a synced lockfile + green tests + clean build.
+#
+# Activated by `npm install` (which runs `postinstall` → sets
+# core.hooksPath to scripts/git-hooks). To activate manually:
+#   git config core.hooksPath scripts/git-hooks
+#
+# Bypass with `git push --no-verify` if you really need to.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# 1. Lockfile drift check — catches the recurring macOS-vs-Linux cross-platform
+#    optional-dep bug (commits 42ecd36, b7089ca) before CI sees it. Fast (<1s)
+#    because --dry-run doesn't touch node_modules. Exits non-zero on
+#    mismatch, set -e propagates.
+echo "pre-push: checking package-lock.json is in sync..."
+npm ci --dry-run --silent
+
+echo "pre-push: running tests..."
+npm test --silent
+
+echo "pre-push: running build..."
+npm run build >/dev/null
+
+echo "pre-push: ok"

@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "sync-wiki": "node scripts/sync-wiki.mjs"
+    "sync-wiki": "node scripts/sync-wiki.mjs",
+    "postinstall": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath scripts/git-hooks || true"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
