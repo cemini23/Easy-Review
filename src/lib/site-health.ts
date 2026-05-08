@@ -1,3 +1,5 @@
+import type { SiteHealthSnapshot } from '@/lib/types';
+
 const TIMEOUT_MS = 10_000;
 
 async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
@@ -130,5 +132,70 @@ export async function fetchHomepageMeta(url: string): Promise<{
     };
   } catch {
     return null;
+  }
+}
+
+type GbpFragment = NonNullable<SiteHealthSnapshot['gbp']>;
+
+export async function fetchPlaceDetails(placeId: string, apiKey: string): Promise<GbpFragment | null> {
+  const fields = [
+    'place_id', 'name', 'business_status', 'rating', 'user_ratings_total',
+    'photos', 'opening_hours', 'formatted_phone_number', 'website',
+  ].join(',');
+  const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=${fields}&key=${encodeURIComponent(apiKey)}`;
+  const empty: GbpFragment = {
+    rating: null, user_ratings_total: null, photo_count: null,
+    business_status: null, has_opening_hours: null, has_phone: null,
+    has_website: null, error: null,
+  };
+  try {
+    const res = await fetchWithTimeout(url, { method: 'GET' });
+    if (!res.ok) return { ...empty, error: `HTTP ${res.status}` };
+    const data = await res.json();
+    if (data.status !== 'OK') return { ...empty, error: `${data.status}: ${data.error_message ?? 'unknown'}` };
+    const r = data.result ?? {};
+    return {
+      rating: typeof r.rating === 'number' ? r.rating : null,
+      user_ratings_total: typeof r.user_ratings_total === 'number' ? r.user_ratings_total : null,
+      photo_count: Array.isArray(r.photos) ? r.photos.length : 0,
+      business_status: r.business_status ?? null,
+      has_opening_hours: Boolean(r.opening_hours),
+      has_phone: Boolean(r.formatted_phone_number),
+      has_website: Boolean(r.website),
+      error: null,
+    };
+  } catch (e) {
+    return { ...empty, error: e instanceof Error ? e.message : 'unknown' };
+  }
+}
+
+type PsiFragment = NonNullable<SiteHealthSnapshot['pagespeed']>;
+
+// PageSpeed responses can take 30-50s on slow sites — use a longer 60s timeout
+// for this fetcher only. The shared fetchWithTimeout has a 10s budget.
+const PSI_TIMEOUT_MS = 60_000;
+
+export async function fetchPageSpeed(url: string, apiKey: string): Promise<PsiFragment | null> {
+  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=mobile&key=${encodeURIComponent(apiKey)}`;
+  const empty: PsiFragment = { mobile_score: null, lcp_ms: null, cls: null, error: null };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PSI_TIMEOUT_MS);
+  try {
+    const res = await fetch(apiUrl, { signal: controller.signal });
+    if (!res.ok) return { ...empty, error: `HTTP ${res.status}` };
+    const data = await res.json();
+    const score = data?.lighthouseResult?.categories?.performance?.score;
+    const lcp = data?.lighthouseResult?.audits?.['largest-contentful-paint']?.numericValue;
+    const cls = data?.lighthouseResult?.audits?.['cumulative-layout-shift']?.numericValue;
+    return {
+      mobile_score: typeof score === 'number' ? Math.round(score * 100) : null,
+      lcp_ms: typeof lcp === 'number' ? Math.round(lcp) : null,
+      cls: typeof cls === 'number' ? cls : null,
+      error: null,
+    };
+  } catch (e) {
+    return { ...empty, error: e instanceof Error ? e.message : 'unknown' };
+  } finally {
+    clearTimeout(timer);
   }
 }

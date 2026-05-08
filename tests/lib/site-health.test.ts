@@ -5,6 +5,8 @@ import {
   fetchSitemap,
   fetchRobots,
   fetchHomepageMeta,
+  fetchPlaceDetails,
+  fetchPageSpeed,
 } from '@/lib/site-health';
 
 describe('fetchHttps', () => {
@@ -198,5 +200,136 @@ describe('fetchHomepageMeta', () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(html, { status: 200 }));
     const result = await fetchHomepageMeta('https://example.com');
     expect(result?.title).toBe('Joe & Sons');
+  });
+});
+
+describe('fetchPlaceDetails', () => {
+  beforeEach(() => { vi.stubGlobal('fetch', vi.fn()); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  const happyResponse = {
+    status: 'OK',
+    result: {
+      name: 'Barone Cuts',
+      business_status: 'OPERATIONAL',
+      rating: 4.8,
+      user_ratings_total: 142,
+      photos: [{ photo_reference: 'a' }, { photo_reference: 'b' }, { photo_reference: 'c' }],
+      opening_hours: { weekday_text: ['Mon: 9-5'] },
+      formatted_phone_number: '(215) 555-1234',
+      website: 'https://baronecuts.com',
+    },
+  };
+
+  it('returns the typed GBP fragment on a successful response', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(JSON.stringify(happyResponse), { status: 200 }),
+    );
+    const result = await fetchPlaceDetails('ChIJabc', 'fakeKey');
+    expect(result).toEqual({
+      rating: 4.8,
+      user_ratings_total: 142,
+      photo_count: 3,
+      business_status: 'OPERATIONAL',
+      has_opening_hours: true,
+      has_phone: true,
+      has_website: true,
+      error: null,
+    });
+  });
+
+  it('returns has_*=false when fields are missing', async () => {
+    const partial = {
+      status: 'OK',
+      result: { name: 'X', business_status: 'OPERATIONAL', rating: 4, user_ratings_total: 10 },
+    };
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(JSON.stringify(partial), { status: 200 }),
+    );
+    const result = await fetchPlaceDetails('ChIJabc', 'fakeKey');
+    expect(result?.has_opening_hours).toBe(false);
+    expect(result?.has_phone).toBe(false);
+    expect(result?.has_website).toBe(false);
+    expect(result?.photo_count).toBe(0);
+  });
+
+  it('returns error fragment when status != OK', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(JSON.stringify({ status: 'NOT_FOUND', error_message: 'No record' }), { status: 200 }),
+    );
+    const result = await fetchPlaceDetails('ChIJabc', 'fakeKey');
+    expect(result?.error).toMatch(/NOT_FOUND/);
+    expect(result?.rating).toBeNull();
+  });
+
+  it('returns error fragment when fetch throws', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('network'));
+    const result = await fetchPlaceDetails('ChIJabc', 'fakeKey');
+    expect(result?.error).toContain('network');
+  });
+
+  it('passes the API key + place_id in the URL', async () => {
+    const fetchSpy = globalThis.fetch as ReturnType<typeof vi.fn>;
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify(happyResponse), { status: 200 }));
+    await fetchPlaceDetails('ChIJxyz', 'thekey');
+    const calledUrl = String(fetchSpy.mock.calls[0][0]);
+    expect(calledUrl).toContain('place_id=ChIJxyz');
+    expect(calledUrl).toContain('key=thekey');
+  });
+});
+
+describe('fetchPageSpeed', () => {
+  beforeEach(() => { vi.stubGlobal('fetch', vi.fn()); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  const happy = {
+    lighthouseResult: {
+      categories: { performance: { score: 0.82 } },
+      audits: {
+        'largest-contentful-paint': { numericValue: 2400 },
+        'cumulative-layout-shift': { numericValue: 0.05 },
+      },
+    },
+  };
+
+  it('extracts mobile_score, lcp_ms, cls', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(JSON.stringify(happy), { status: 200 }),
+    );
+    const result = await fetchPageSpeed('https://example.com', 'fakeKey');
+    expect(result).toEqual({ mobile_score: 82, lcp_ms: 2400, cls: 0.05, error: null });
+  });
+
+  it('rounds the score to a whole number', async () => {
+    const r = JSON.parse(JSON.stringify(happy));
+    r.lighthouseResult.categories.performance.score = 0.876;
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(JSON.stringify(r), { status: 200 }));
+    const result = await fetchPageSpeed('https://example.com', 'k');
+    expect(result?.mobile_score).toBe(88);
+  });
+
+  it('returns error when fetch throws', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('timeout'));
+    const result = await fetchPageSpeed('https://example.com', 'k');
+    expect(result?.error).toContain('timeout');
+    expect(result?.mobile_score).toBeNull();
+  });
+
+  it('returns error when API returns non-2xx', async () => {
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(JSON.stringify({ error: { message: 'quota exceeded' } }), { status: 429 }),
+    );
+    const result = await fetchPageSpeed('https://example.com', 'k');
+    expect(result?.error).toMatch(/HTTP 429/);
+  });
+
+  it('passes url + strategy=mobile + key in the request', async () => {
+    const fetchSpy = globalThis.fetch as ReturnType<typeof vi.fn>;
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify(happy), { status: 200 }));
+    await fetchPageSpeed('https://example.com', 'thekey');
+    const calledUrl = String(fetchSpy.mock.calls[0][0]);
+    expect(calledUrl).toContain('url=https%3A%2F%2Fexample.com');
+    expect(calledUrl).toContain('strategy=mobile');
+    expect(calledUrl).toContain('key=thekey');
   });
 });
