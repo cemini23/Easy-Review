@@ -44,6 +44,8 @@ export interface Operator {
   services: string[];
   staff_names: string[];
   active: boolean;
+  website_url?: string;
+  gbp_place_id?: string;
 }
 
 export interface DraftRow {
@@ -95,4 +97,39 @@ export interface TemplatesJson {
   version: string;
   source: string;
   categories: CategoryDef[];
+}
+
+export interface SiteHealthSnapshot {
+  id: string;
+  operator_id: string;
+  fetched_at: string;
+  website: {
+    https: boolean | null;
+    schema: { hasLocalBusiness: boolean; types: string[] } | null;
+    sitemap: boolean | null;
+    robots: boolean | null;
+    homepage: {
+      title: string;
+      description: string;
+      titleLength: number;
+      descriptionLength: number;
+    } | null;
+    error: string | null;
+  };
+  gbp: {
+    rating: number | null;
+    user_ratings_total: number | null;
+    photo_count: number | null;
+    business_status: 'OPERATIONAL' | 'CLOSED_TEMPORARILY' | 'CLOSED_PERMANENTLY' | null;
+    has_opening_hours: boolean | null;
+    has_phone: boolean | null;
+    has_website: boolean | null;
+    error: string | null;
+  } | null;
+  pagespeed: {
+    mobile_score: number | null;
+    lcp_ms: number | null;
+    cls: number | null;
+    error: string | null;
+  } | null;
 }
