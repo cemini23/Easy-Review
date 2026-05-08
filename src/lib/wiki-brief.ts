@@ -18,7 +18,7 @@ export interface SerializeBriefArgs {
 
 export function serializeBrief(args: SerializeBriefArgs): string {
   const today = args.postedAt.slice(0, 10);
-  const escapedAuthor = args.reviewSnapshot.author.replace(/\n/g, ' ');
+  const escapedAuthor = args.reviewSnapshot.author.replace(/\n/g, ' ').trim();
   const reviewBody = args.reviewSnapshot.text
     .split('\n')
     .map((line) => `> ${line}`)
@@ -34,6 +34,7 @@ type: brief
 tags: [reviews, ${args.operatorVertical}, gbp-posted]
 target: GBP (posted)
 operator: ${args.operatorEmail}
+operator_vertical: ${args.operatorVertical}
 gbp_review_id: ${args.gbpReviewId}
 posted_at: ${args.postedAt}
 category: ${args.category}

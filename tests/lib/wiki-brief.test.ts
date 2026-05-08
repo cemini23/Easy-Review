@@ -22,6 +22,7 @@ describe('serializeBrief', () => {
     expect(md).toMatch(/title: GBP reply — Mike R\. \(5★\) — 2026-05-07/);
     expect(md).toMatch(/type: brief/);
     expect(md).toMatch(/tags: \[reviews, barbershop, gbp-posted\]/);
+    expect(md).toMatch(/operator_vertical: barbershop/);
     expect(md).toMatch(/operator: op@example\.com/);
     expect(md).toMatch(/gbp_review_id: rev_abc123/);
     expect(md).toMatch(/category: 5star_specific/);
@@ -32,6 +33,26 @@ describe('serializeBrief', () => {
     expect(md).toContain('> Thanks Mike!');
     expect(md).toContain('## Sources');
     expect(md).toContain('[Source: GBP API review rev_abc123');
+  });
+
+  it('trims whitespace from author so titles + tags stay clean', () => {
+    const md = serializeBrief({
+      reviewSnapshot: {
+        author: '  Mike R.  ',
+        rating: 5,
+        text: 'Joey was great!',
+        date: '2026-05-06',
+      },
+      postedText: 'Thanks Mike!',
+      category: '5star_specific',
+      operatorEmail: 'op@example.com',
+      operatorVertical: 'barbershop',
+      gbpReviewId: 'r1',
+      postedAt: '2026-05-07T00:00:00Z',
+    });
+    expect(md).toMatch(/title: GBP reply — Mike R\. \(5★\) — 2026-05-07/);
+    expect(md).not.toMatch(/title:.*  Mike/);
+    expect(md).not.toMatch(/Mike R\. {2}/);
   });
 
   it('quotes multi-line review text correctly', () => {
