@@ -45,18 +45,18 @@ if (newOperatorFields.length > 0) {
 }
 
 // 2. Create site_health_snapshots if missing.
-let exists = true;
+let snapshots = null;
 try {
-  await pb.collections.getFirstListItem('name="site_health_snapshots"');
+  snapshots = await pb.collections.getFirstListItem('name="site_health_snapshots"');
 } catch (e) {
-  if (e?.status === 404) exists = false;
-  else throw e;
+  if (e?.status !== 404) throw e;
 }
 
-if (exists) {
-  console.log('site_health_snapshots: already exists, skipping');
-} else {
-  await pb.collections.create({
+const UNIQUE_INDEX_NAME = 'idx_site_health_snapshots_operator_id_unique';
+const UNIQUE_INDEX_SQL = `CREATE UNIQUE INDEX \`${UNIQUE_INDEX_NAME}\` ON \`site_health_snapshots\` (\`operator_id\`)`;
+
+if (!snapshots) {
+  snapshots = await pb.collections.create({
     name: 'site_health_snapshots',
     type: 'base',
     fields: [
@@ -66,13 +66,32 @@ if (exists) {
       { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
       { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
     ],
+    indexes: [UNIQUE_INDEX_SQL],
     listRule: '@request.auth.id != ""',
     viewRule: '@request.auth.id != ""',
     createRule: '@request.auth.id != ""',
     updateRule: '@request.auth.id != ""',
     deleteRule: '@request.auth.id != ""',
   });
-  console.log('site_health_snapshots: created');
+  console.log(`site_health_snapshots: created (with unique index on operator_id)`);
+} else {
+  console.log('site_health_snapshots: already exists, checking indexes');
+}
+
+// 3. Ensure the unique index on operator_id exists. Idempotent.
+const existingIndexes = snapshots.indexes ?? [];
+const hasUniqueIndex = existingIndexes.some((idx) =>
+  idx.includes(UNIQUE_INDEX_NAME) ||
+  /UNIQUE\s+INDEX[^(]+\(\s*`?operator_id`?\s*\)/i.test(idx),
+);
+
+if (!hasUniqueIndex) {
+  await pb.collections.update(snapshots.id, {
+    indexes: [...existingIndexes, UNIQUE_INDEX_SQL],
+  });
+  console.log(`site_health_snapshots: added unique index on operator_id`);
+} else {
+  console.log('site_health_snapshots: unique index on operator_id already present, skipping');
 }
 
 console.log('Done.');

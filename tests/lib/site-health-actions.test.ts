@@ -120,6 +120,53 @@ describe('fetchSiteSnapshot', () => {
     expect(snapshotsCollection.create).not.toHaveBeenCalled();
   });
 
+  it('falls back to update when create races with another writer (unique-constraint)', async () => {
+    // Initial read: no row exists.
+    // create(): fails with a unique-constraint error (mimicking PocketBase's
+    // 400 response when the unique index on operator_id is violated by a
+    // concurrent insert).
+    // Fallback re-read: now finds the row the racing writer inserted.
+    // Final update: succeeds against that row.
+    mocks.fetchHttps.mockResolvedValue(true);
+    mocks.fetchSchema.mockResolvedValue(null);
+    mocks.fetchSitemap.mockResolvedValue(false);
+    mocks.fetchRobots.mockResolvedValue(false);
+    mocks.fetchHomepageMeta.mockResolvedValue(null);
+    snapshotsCollection.getFirstListItem
+      .mockRejectedValueOnce({ status: 404 })
+      .mockResolvedValueOnce({ id: 'racing-snap' });
+    snapshotsCollection.create.mockRejectedValue({
+      status: 400,
+      data: { operator_id: { code: 'validation_not_unique' } },
+    });
+    snapshotsCollection.update.mockResolvedValue({ id: 'racing-snap' });
+
+    const result = await fetchSiteSnapshot('op1');
+    expect(snapshotsCollection.getFirstListItem).toHaveBeenCalledTimes(2);
+    expect(snapshotsCollection.create).toHaveBeenCalledOnce();
+    expect(snapshotsCollection.update).toHaveBeenCalledWith('racing-snap', expect.any(Object));
+    expect(result.id).toBe('racing-snap');
+  });
+
+  it('propagates create error when fallback re-read also fails', async () => {
+    // create() fails for some reason other than a winnable race; the
+    // re-read also returns 404 (i.e. truly no row). The original create
+    // error should propagate so callers see the real failure cause.
+    mocks.fetchHttps.mockResolvedValue(true);
+    mocks.fetchSchema.mockResolvedValue(null);
+    mocks.fetchSitemap.mockResolvedValue(false);
+    mocks.fetchRobots.mockResolvedValue(false);
+    mocks.fetchHomepageMeta.mockResolvedValue(null);
+    snapshotsCollection.getFirstListItem
+      .mockRejectedValueOnce({ status: 404 })
+      .mockRejectedValueOnce({ status: 404 });
+    const createErr = { status: 400, data: { snapshot_data: { code: 'invalid_json' } } };
+    snapshotsCollection.create.mockRejectedValue(createErr);
+
+    await expect(fetchSiteSnapshot('op1')).rejects.toEqual(createErr);
+    expect(snapshotsCollection.update).not.toHaveBeenCalled();
+  });
+
   it('returns an empty website snapshot when website_url is missing', async () => {
     operatorsCollection.getOne.mockResolvedValueOnce({ ...operatorRow, website_url: '' });
     snapshotsCollection.getFirstListItem.mockRejectedValue({ status: 404 });

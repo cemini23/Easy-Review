@@ -29,9 +29,12 @@ export async function fetchSiteSnapshot(operatorId: string): Promise<SiteHealthS
   const fetched_at = new Date().toISOString();
   const snapshotData = { website, gbp, pagespeed };
 
+  const collection = pb.collection('site_health_snapshots');
+  const filter = `operator_id="${operatorId}"`;
+
   let row: { id: string } | null = null;
   try {
-    row = await pb.collection('site_health_snapshots').getFirstListItem(`operator_id="${operatorId}"`);
+    row = await collection.getFirstListItem(filter);
   } catch (e) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((e as any)?.status !== 404) throw e;
@@ -39,16 +42,31 @@ export async function fetchSiteSnapshot(operatorId: string): Promise<SiteHealthS
 
   let saved;
   if (row) {
-    saved = await pb.collection('site_health_snapshots').update(row.id, {
-      snapshot_data: snapshotData,
-      fetched_at,
-    });
+    saved = await collection.update(row.id, { snapshot_data: snapshotData, fetched_at });
   } else {
-    saved = await pb.collection('site_health_snapshots').create({
-      operator_id: operatorId,
-      snapshot_data: snapshotData,
-      fetched_at,
-    });
+    try {
+      saved = await collection.create({
+        operator_id: operatorId,
+        snapshot_data: snapshotData,
+        fetched_at,
+      });
+    } catch (createErr) {
+      // Race-safety: a concurrent refresh may have inserted the row between
+      // our read and write. With the unique index on operator_id, that race
+      // surfaces here as a constraint violation. Re-read and update; if the
+      // re-read also fails, propagate the original create error.
+      let raceRow: { id: string } | null = null;
+      try {
+        raceRow = await collection.getFirstListItem(filter);
+      } catch {
+        // fall through — original error wins
+      }
+      if (raceRow) {
+        saved = await collection.update(raceRow.id, { snapshot_data: snapshotData, fetched_at });
+      } else {
+        throw createErr;
+      }
+    }
   }
 
   return {
