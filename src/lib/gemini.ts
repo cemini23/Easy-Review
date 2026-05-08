@@ -1,15 +1,80 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { CategoryDef, Operator, Review } from '@/lib/types';
 
-let _model: ReturnType<GoogleGenerativeAI['getGenerativeModel']> | null = null;
+interface Provider {
+  name: string;
+  generate: (prompt: string) => Promise<string>;
+}
 
-function getModel() {
-  if (_model) return _model;
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY not set');
-  const genAI = new GoogleGenerativeAI(key);
-  _model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  return _model;
+function buildProviders(): Provider[] {
+  const list: Provider[] = [];
+  if (process.env.GEMINI_API_KEY) {
+    list.push({ name: 'gemini', generate: geminiGenerate });
+  }
+  if (process.env.GROQ_API_KEY) {
+    list.push({ name: 'groq', generate: groqGenerate });
+  }
+  if (process.env.DEEPSEEK_API_KEY) {
+    list.push({ name: 'deepseek', generate: deepseekGenerate });
+  }
+  return list;
+}
+
+async function geminiGenerate(prompt: string): Promise<string> {
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+  const model = genAI.getGenerativeModel({
+    model: process.env.GEMINI_MODEL || 'gemini-flash-lite-latest',
+  });
+  const r = await model.generateContent(prompt);
+  return r.response.text().trim();
+}
+
+async function groqGenerate(prompt: string): Promise<string> {
+  return openaiCompat({
+    baseUrl: 'https://api.groq.com/openai/v1',
+    key: process.env.GROQ_API_KEY!,
+    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    prompt,
+  });
+}
+
+async function deepseekGenerate(prompt: string): Promise<string> {
+  return openaiCompat({
+    baseUrl: 'https://api.deepseek.com/v1',
+    key: process.env.DEEPSEEK_API_KEY!,
+    model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+    prompt,
+  });
+}
+
+async function openaiCompat(args: {
+  baseUrl: string;
+  key: string;
+  model: string;
+  prompt: string;
+}): Promise<string> {
+  const res = await fetch(`${args.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${args.key}`,
+    },
+    body: JSON.stringify({
+      model: args.model,
+      messages: [{ role: 'user', content: args.prompt }],
+      temperature: 0.7,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`HTTP ${res.status}: ${body.slice(0, 240)}`);
+  }
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (typeof text !== 'string') {
+    throw new Error(`unexpected response shape: ${JSON.stringify(data).slice(0, 240)}`);
+  }
+  return text.trim();
 }
 
 export interface BuildPromptArgs {
@@ -81,16 +146,29 @@ export function validateDraft(text: string): { ok: boolean; reason?: string } {
 
 export async function generateReply(args: BuildPromptArgs): Promise<string> {
   const prompt = buildPrompt(args);
-  const model = getModel();
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-    const v = validateDraft(text);
-    if (v.ok) return text;
+  const providers = buildProviders();
+  if (providers.length === 0) {
+    throw new Error(
+      'No LLM provider configured. Set at least one of GEMINI_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY in .env.local.'
+    );
   }
 
-  // Fallback: emit the example_response with sign-off appended
+  const errors: string[] = [];
+  for (const p of providers) {
+    try {
+      const text = await p.generate(prompt);
+      const v = validateDraft(text);
+      if (v.ok) return text;
+      errors.push(`${p.name}: validation failed (${v.reason})`);
+      console.warn(`[llm] ${p.name} produced invalid draft: ${v.reason}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`${p.name}: ${msg.slice(0, 240)}`);
+      console.warn(`[llm] ${p.name} failed: ${msg.slice(0, 240)}`);
+    }
+  }
+
+  console.warn(`[llm] all providers failed; using example_response fallback. errors: ${errors.join(' | ')}`);
   const fallback = args.template.templates[0].example_response;
   return args.operator.sign_off ? `${fallback} ${args.operator.sign_off}` : fallback;
 }
