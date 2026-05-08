@@ -89,13 +89,19 @@ Set API rules to `@request.auth.id != ""` on all three (superuser-only access fo
 
 **Important — PocketBase v0.23+ change.** Older docs assumed `created` and `updated` were auto-added system fields. They are not anymore. You must add them explicitly as `autodate` fields, otherwise sorting by `+created` (which the app does) returns HTTP 400. The schemas above already include them.
 
-## Step 2 — Get a Gemini API key (2 min)
+## Step 2 — Get an LLM API key (2 min)
 
-1. Visit https://aistudio.google.com/apikey
-2. Click "Create API key"
-3. Copy the key — starts with `AIza...`
+EasyReview supports a 3-tier provider fallback: **Gemini → Groq → DeepSeek**. Set at least one. If multiple are configured, providers are tried in that order; if a provider returns a rate-limit / 5xx / validation failure, the next one is tried automatically.
 
-The free tier (1.5K requests/day) won't be exhausted by a single operator's paste flow.
+| Provider | Free tier? | Get a key |
+|----------|-----------|-----------|
+| **Gemini** (`gemini-flash-lite-latest`) | Yes — generous daily quota, can exhaust during heavy testing | https://aistudio.google.com/apikey (key starts `AIza...`) |
+| **Groq** (`llama-3.3-70b-versatile`) | Yes — much higher per-minute quota than Gemini, comparable quality | https://console.groq.com/keys (key starts `gsk_...`) |
+| **DeepSeek** (`deepseek-chat`) | No — pay-as-you-go, very cheap | https://platform.deepseek.com/api_keys (key starts `sk-...`) |
+
+For a single operator's paste flow, **Gemini alone is enough**. For dev / smoke testing where you'll burn through quota fast, add Groq as a fallback. DeepSeek is the paid bottom-tier safety net.
+
+Per-provider model overrides: `GEMINI_MODEL`, `GROQ_MODEL`, `DEEPSEEK_MODEL` env vars.
 
 ## Step 3 — Create a fine-scoped GitHub PAT (3 min)
 
@@ -121,7 +127,11 @@ cp .env.example .env.local
 Edit `.env.local` with the values from steps 1-3:
 
 ```bash
+# At least one LLM key required (tried in order: Gemini → Groq → DeepSeek)
 GEMINI_API_KEY=AIza...
+GROQ_API_KEY=gsk_...        # optional fallback
+DEEPSEEK_API_KEY=sk-...     # optional fallback
+
 POCKETBASE_URL=https://easyreview-yourshop.pockethost.io
 POCKETBASE_ADMIN_EMAIL=admin@yourshop.com
 POCKETBASE_ADMIN_PASSWORD=<the password you saved in step 1>
