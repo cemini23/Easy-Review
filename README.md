@@ -56,3 +56,7 @@ End-to-end setup (PocketBase + Gemini + GitHub PAT + Vercel + smoke test) is in 
 - Never auto-post a reply. The operator's Post click is the only path to a write.
 - Never log customer names from reviews to console or error toasts.
 - The 1★-likely-fake category is never pre-drafted by AI — operator decides manually per wiki guidance.
+
+## License
+
+[MIT](LICENSE) © 2026 Cemini23
