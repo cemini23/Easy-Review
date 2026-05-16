@@ -172,3 +172,31 @@ export async function generateReply(args: BuildPromptArgs): Promise<string> {
   const fallback = args.template.templates[0].example_response;
   return args.operator.sign_off ? `${fallback} ${args.operator.sign_off}` : fallback;
 }
+
+/**
+ * Generic single-prompt LLM call using the same provider fallback chain as
+ * `generateReply`. Unlike `generateReply` it does no draft-shaped validation
+ * and has no static fallback — callers that need structured output handle
+ * parsing + failure themselves. Throws when every provider fails.
+ */
+export async function generateText(prompt: string): Promise<string> {
+  const providers = buildProviders();
+  if (providers.length === 0) {
+    throw new Error(
+      'No LLM provider configured. Set at least one of GEMINI_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY in .env.local.'
+    );
+  }
+  const errors: string[] = [];
+  for (const p of providers) {
+    try {
+      const text = await p.generate(prompt);
+      if (text && text.trim().length > 0) return text;
+      errors.push(`${p.name}: empty response`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`${p.name}: ${msg.slice(0, 240)}`);
+      console.warn(`[llm] ${p.name} failed: ${msg.slice(0, 240)}`);
+    }
+  }
+  throw new Error(`All LLM providers failed: ${errors.join(' | ')}`);
+}

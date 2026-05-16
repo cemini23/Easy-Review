@@ -109,8 +109,8 @@ describe('fetchSchema', () => {
     })}</script></head><body></body></html>`;
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(html, { status: 200 }));
     const result = await fetchSchema('https://example.com');
-    expect(result.hasLocalBusiness).toBe(true);
-    expect(result.types).toContain('BarberShop');
+    expect(result!.hasLocalBusiness).toBe(true);
+    expect(result!.types).toContain('BarberShop');
   });
 
   it('returns hasLocalBusiness=false when only an unrelated type is present', async () => {
@@ -119,8 +119,8 @@ describe('fetchSchema', () => {
     })}</script>`;
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(html, { status: 200 }));
     const result = await fetchSchema('https://example.com');
-    expect(result.hasLocalBusiness).toBe(false);
-    expect(result.types).toEqual(['WebSite']);
+    expect(result!.hasLocalBusiness).toBe(false);
+    expect(result!.types).toEqual(['WebSite']);
   });
 
   it('handles multiple JSON-LD blocks', async () => {
@@ -130,9 +130,9 @@ describe('fetchSchema', () => {
     `;
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(html, { status: 200 }));
     const result = await fetchSchema('https://example.com');
-    expect(result.types).toContain('WebSite');
-    expect(result.types).toContain('BarberShop');
-    expect(result.hasLocalBusiness).toBe(true);
+    expect(result!.types).toContain('WebSite');
+    expect(result!.types).toContain('BarberShop');
+    expect(result!.hasLocalBusiness).toBe(true);
   });
 
   it('returns null on fetch failure', async () => {

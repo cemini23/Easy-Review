@@ -218,3 +218,39 @@ export interface CitabilityReport {
   /** Set when the page could not be fetched/analyzed; signals will be empty. */
   error: string | null;
 }
+
+// --- Review analytics ----------------------------------------------------
+
+/** A calendar month and the number of reviews dated within it. */
+export interface MonthBucket {
+  /** "YYYY-MM" */
+  month: string;
+  count: number;
+}
+
+/** Aggregate metrics over an operator's processed reviews. */
+export interface ReviewAnalytics {
+  total: number;
+  averageRating: number | null;
+  /** Counts for ratings 1–5, index 0 = 1★ … index 4 = 5★. */
+  ratingCounts: number[];
+  categoryCounts: Record<Category, number>;
+  statusCounts: Record<DraftStatus, number>;
+  /** Posted ÷ (total − obsolete), 0–1. */
+  responseRate: number;
+  /** Reviews whose review_date falls in the last 30 days. */
+  velocity30d: number;
+  /** Whole days since the most recent review_date, or null if none parse. */
+  daysSinceLastReview: number | null;
+  /** Last 6 calendar months, oldest → newest. */
+  monthlyTrend: MonthBucket[];
+}
+
+// --- Review theme extraction ---------------------------------------------
+
+/** One recurring theme surfaced from a batch of review texts. */
+export interface ReviewTheme {
+  theme: string;
+  count: number;
+  sentiment: 'positive' | 'negative' | 'mixed';
+}

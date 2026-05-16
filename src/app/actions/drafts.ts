@@ -146,6 +146,17 @@ export async function listPendingDrafts(args: {
   return list.items.map(mapDraft);
 }
 
+export async function listAllDrafts(args: {
+  operatorId: string;
+}): Promise<DraftRow[]> {
+  const pb = await authAsAdmin();
+  const list = await pb.collection('drafts').getList(1, 500, {
+    filter: `operator_id = "${args.operatorId}"`,
+    sort: '-review_date',
+  });
+  return list.items.map(mapDraft);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapDraft(row: any): DraftRow {
   return {

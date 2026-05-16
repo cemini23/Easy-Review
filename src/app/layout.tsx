@@ -27,6 +27,8 @@ export default function RootLayout({
               </div>
               <nav className="flex items-center space-x-4">
                 <Link href="/" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Reviews</Link>
+                <Link href="/insights" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Insights</Link>
+                <Link href="/get-reviews" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Get Reviews</Link>
                 <Link href="/site-health" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Site Health</Link>
                 <Link href="/schema" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Schema</Link>
                 <Link href="/citability" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Citability</Link>
