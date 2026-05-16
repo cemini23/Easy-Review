@@ -42,7 +42,7 @@ export default function InsightsView({
   return (
     <div className="space-y-6">
       <AnalyticsSection analytics={analytics} />
-      <ThemesSection operatorId={operator.id} />
+      <ThemesSection operatorId={operator.id} reviewCount={analytics.total} />
       <BenchmarkSection operator={operator} analytics={analytics} />
     </div>
   );
@@ -152,7 +152,13 @@ function AnalyticsSection({ analytics: a }: { analytics: ReviewAnalytics }) {
 
 /* ------------------------------------------------------------------- Themes */
 
-function ThemesSection({ operatorId }: { operatorId: string }) {
+function ThemesSection({
+  operatorId,
+  reviewCount,
+}: {
+  operatorId: string;
+  reviewCount: number;
+}) {
   const [result, setResult] = useState<ThemeResult | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -161,6 +167,20 @@ function ThemesSection({ operatorId }: { operatorId: string }) {
       setResult(await extractThemes(operatorId));
     });
   };
+
+  if (reviewCount < 3) {
+    return (
+      <SiteHealthCard
+        title="Recurring themes"
+        subtitle="What customers mention most — extracted from your review text by AI"
+      >
+        <p className="text-sm text-slate-500 pt-1">
+          Add at least 3 reviews on the Reviews tab — then EasyReview can extract the themes
+          customers mention most.
+        </p>
+      </SiteHealthCard>
+    );
+  }
 
   return (
     <SiteHealthCard

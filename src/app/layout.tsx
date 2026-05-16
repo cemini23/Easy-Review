@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import Link from "next/link";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import Nav from "@/components/Nav";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,18 +21,11 @@ export default function RootLayout({
       <body className={cn(inter.className, "h-full bg-slate-50 text-slate-900")}>
         <div className="flex flex-col min-h-screen">
           <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md">
-            <div className="container flex h-16 items-center justify-between px-4 mx-auto">
-              <div className="font-bold text-xl tracking-tight text-indigo-600">
+            <div className="container mx-auto flex flex-col gap-2 px-4 py-3 sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
+              <div className="shrink-0 font-bold text-xl tracking-tight text-indigo-600">
                 EASY REVIEW
               </div>
-              <nav className="flex items-center space-x-4">
-                <Link href="/" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Reviews</Link>
-                <Link href="/insights" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Insights</Link>
-                <Link href="/get-reviews" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Get Reviews</Link>
-                <Link href="/site-health" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Site Health</Link>
-                <Link href="/schema" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Schema</Link>
-                <Link href="/citability" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">Citability</Link>
-              </nav>
+              <Nav />
             </div>
           </header>
           <main className="flex-1 container mx-auto px-4 py-8">

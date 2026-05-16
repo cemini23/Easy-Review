@@ -13,11 +13,21 @@ Vertical-agnostic — works for barbershops, dental clinics, salons, gyms, retai
 
 - Operator pastes a Google / Yelp / Facebook review into the form
 - App categorizes against the wiki's 5-category framework (5★-specific, 5★-generic, 4★, 3★-mixed, 1-2★ complaint, 1★ likely-fake)
-- Gemini 2.0 Flash drafts a reply using the wiki's response templates
+- An LLM (Gemini, with Groq/DeepSeek fallback) drafts a reply using the wiki's response templates
 - Operator edits, regenerates, or approves
 - Approved reply is committed back to the wiki repo via Octokit as `briefs/YYYY-MM-DD_<id>.md`
 
 v1 will add live Google Business Profile API integration so reviews flow in automatically and replies post directly. v0 stays paste-and-paste so the operator can validate the loop with no GBP write access required.
+
+## The other operator tools
+
+Beyond the review paste-flow, EasyReview ships five more wiki-backed tabs:
+
+- **Insights** — review analytics (velocity, recency, response rate, category mix, 6-month trend), AI-extracted recurring themes, and competitor category-mix benchmarking
+- **Get Reviews** — a printable QR code + SMS/email templates pointing customers at the GBP review form (no review gating)
+- **Site Health** — HTTPS, LocalBusiness schema, sitemap, robots, and meta-tag signals, plus optional GBP and PageSpeed checks
+- **Schema** — generates `LocalBusiness` + `FAQPage` JSON-LD for the operator's website
+- **Citability** — scores a page on how well AI engines (ChatGPT, Claude, Perplexity, Gemini) can retrieve and cite it
 
 ## Setup
 
@@ -30,7 +40,7 @@ v1 will add live Google Business Profile API integration so reviews flow in auto
 
 ## Stack
 
-Next.js 15 App Router · TypeScript · Tailwind 4 · PocketBase · Gemini 2.0 Flash · Octokit · vitest
+Next.js 16 App Router · TypeScript · Tailwind 4 · PocketBase · LLM drafting (Gemini → Groq → DeepSeek fallback) · Octokit · qrcode · vitest
 
 ## Deploy
 

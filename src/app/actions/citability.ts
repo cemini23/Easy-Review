@@ -1,23 +1,15 @@
 'use server';
 
-import { isValidPublicHttpUrl } from '@/lib/site-health';
+import { isValidPublicHttpUrl, safeFetch } from '@/lib/site-health';
 import { analyzePage } from '@/lib/citability';
 import type { CitabilityReport } from '@/lib/types';
 
 const TIMEOUT_MS = 12_000;
 const USER_AGENT = 'EasyReview-CitabilityBot/1.0 (+https://github.com/cemini23/Easy-Review)';
 
-async function fetchWithTimeout(url: string): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    return await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': USER_AGENT },
-    });
-  } finally {
-    clearTimeout(timer);
-  }
+/** SSRF-guarded fetch (manual redirects, per-hop public-URL revalidation). */
+function fetchPage(url: string): Promise<Response> {
+  return safeFetch(url, { headers: { 'User-Agent': USER_AGENT } }, TIMEOUT_MS);
 }
 
 /**
@@ -40,7 +32,7 @@ export async function analyzeUrl(rawUrl: string): Promise<CitabilityReport> {
 
   let html: string;
   try {
-    const res = await fetchWithTimeout(url);
+    const res = await fetchPage(url);
     if (!res.ok) {
       return { ...base, error: `The page returned HTTP ${res.status}.` };
     }
@@ -54,7 +46,7 @@ export async function analyzeUrl(rawUrl: string): Promise<CitabilityReport> {
   let robotsTxt: string | null = null;
   try {
     const origin = new URL(url).origin;
-    const res = await fetchWithTimeout(`${origin}/robots.txt`);
+    const res = await fetchPage(`${origin}/robots.txt`);
     if (res.ok) {
       const ct = res.headers.get('content-type') ?? '';
       // A 200 that serves HTML is a soft-404 — treat as "no robots.txt".

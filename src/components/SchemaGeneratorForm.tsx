@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import SiteHealthCard from '@/components/SiteHealthCard';
+import { saveSchemaProfile } from '@/app/actions/schema';
 import {
   WEEKDAYS,
   schemaTypeForVertical,
@@ -52,43 +53,39 @@ function defaultProfile(operator: Operator): SchemaProfile {
   };
 }
 
-function storageKey(operatorId: string): string {
-  return `easyreview:schema:${operatorId}`;
-}
+export default function SchemaGeneratorForm({
+  operator,
+  savedProfile,
+}: {
+  operator: Operator;
+  savedProfile: SchemaProfile | null;
+}) {
+  // Start from the account-saved profile when there is one, falling back to
+  // sensible defaults derived from the operator. The merge keeps the form
+  // working even if a saved profile predates a newer SchemaProfile field.
+  const [profile, setProfile] = useState<SchemaProfile>(() => ({
+    ...defaultProfile(operator),
+    ...(savedProfile ?? {}),
+  }));
+  const [saving, startSaving] = useTransition();
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-export default function SchemaGeneratorForm({ operator }: { operator: Operator }) {
-  const [profile, setProfile] = useState<SchemaProfile>(() => defaultProfile(operator));
-  const [hydrated, setHydrated] = useState(false);
-
-  // Load any saved draft from localStorage after mount. Done in an effect (not
-  // a lazy initializer) so the server and first client render agree — reading
-  // localStorage during render would cause a hydration mismatch.
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey(operator.id));
-      if (raw) {
-        const saved = JSON.parse(raw) as Partial<SchemaProfile>;
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time post-mount hydration of persisted state
-        setProfile((p) => ({ ...p, ...saved }));
-      }
-    } catch {
-      // ignore corrupt / unavailable storage
-    }
-    setHydrated(true);
-  }, [operator.id]);
-
-  // Persist on every change once hydrated.
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(storageKey(operator.id), JSON.stringify(profile));
-    } catch {
-      // ignore storage failures (private mode, quota)
-    }
-  }, [profile, hydrated, operator.id]);
-
-  const update = (patch: Partial<SchemaProfile>) =>
+  const update = (patch: Partial<SchemaProfile>) => {
     setProfile((p) => ({ ...p, ...patch }));
+    setSaveMsg(null);
+  };
+
+  const save = () => {
+    setSaveMsg(null);
+    startSaving(async () => {
+      const res = await saveSchemaProfile(operator.id, profile);
+      setSaveMsg(
+        res.ok
+          ? { ok: true, text: 'Saved to your account.' }
+          : { ok: false, text: res.error ?? 'Save failed.' },
+      );
+    });
+  };
 
   const businessLd = useMemo(() => buildLocalBusinessJsonLd(profile), [profile]);
   const faqLd = useMemo(() => buildFaqPageJsonLd(profile.faqs), [profile.faqs]);
@@ -105,6 +102,27 @@ export default function SchemaGeneratorForm({ operator }: { operator: Operator }
 
   return (
     <div className="space-y-6">
+      {/* --- Save bar --- */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3">
+        <p className="text-sm text-slate-500">
+          Edits stay on this page until you save them to your account.
+        </p>
+        <div className="flex items-center gap-3">
+          {saveMsg && (
+            <span className={`text-xs ${saveMsg.ok ? 'text-green-700' : 'text-red-700'}`}>
+              {saveMsg.text}
+            </span>
+          )}
+          <button
+            onClick={save}
+            disabled={saving}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-md disabled:opacity-50 transition-colors"
+          >
+            {saving ? 'Saving…' : 'Save to account'}
+          </button>
+        </div>
+      </div>
+
       {/* --- Business basics --- */}
       <SiteHealthCard title="Business" subtitle="The core identity fields for the LocalBusiness entity">
         <div className="grid grid-cols-2 gap-3 pt-1">

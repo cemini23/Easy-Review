@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
 import { listPendingDrafts } from '@/app/actions/drafts';
 import ReviewInputForm from '@/components/ReviewInputForm';
 import ReviewCard from '@/components/ReviewCard';
@@ -30,26 +29,9 @@ export default function Dashboard({
         <h1 className="text-3xl font-extrabold text-indigo-950 tracking-tight">
           {operator.business_name} · Reviews
         </h1>
-        <nav className="flex items-center gap-3">
-          <Link href="/insights" className="text-sm text-indigo-600 hover:text-indigo-800">
-            Insights →
-          </Link>
-          <Link href="/get-reviews" className="text-sm text-indigo-600 hover:text-indigo-800">
-            Get Reviews →
-          </Link>
-          <Link href="/site-health" className="text-sm text-indigo-600 hover:text-indigo-800">
-            Site Health →
-          </Link>
-          <Link href="/schema" className="text-sm text-indigo-600 hover:text-indigo-800">
-            Schema →
-          </Link>
-          <Link href="/citability" className="text-sm text-indigo-600 hover:text-indigo-800">
-            Citability →
-          </Link>
-          <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full border">
-            {new Date().toLocaleDateString()}
-          </span>
-        </nav>
+        <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full border">
+          {new Date().toLocaleDateString()}
+        </span>
       </div>
 
       <ReviewInputForm operator={operator} onCreated={reload} />

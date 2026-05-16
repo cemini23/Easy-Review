@@ -2,12 +2,23 @@
 
 This is a Next.js 15 app that complements the wiki at `../SEO:GEO B&M Business/`. It lets a B&M operator (or wiki maintainer on their behalf) categorize incoming GBP reviews against the wiki's 5-category framework, draft replies via Gemini Flash, and commit approved replies back to the wiki repo as briefs.
 
+## Features
+
+The app has six operator tabs:
+
+- **Reviews** (`/`) — paste a review → categorize → AI-draft a reply → Post commits a brief to the wiki
+- **Insights** (`/insights`) — review analytics dashboard, AI theme extraction, competitor benchmarking
+- **Get Reviews** (`/get-reviews`) — QR code + SMS/email templates linking to the GBP review form
+- **Site Health** (`/site-health`) — HTTPS/schema/sitemap/robots/meta + optional GBP & PageSpeed signals
+- **Schema** (`/schema`) — generate LocalBusiness + FAQPage JSON-LD for the operator's website
+- **Citability** (`/citability`) — score a page on AI-engine (GEO/AEO) citability
+
 ## Stack
 
-- Next.js 15 App Router · TypeScript · Tailwind 4 · framer-motion · lucide-react
+- Next.js 16 App Router · TypeScript · Tailwind 4 · framer-motion · lucide-react
 - PocketBase JS SDK (auth + persistence)
-- @google/generative-ai (Gemini 2.0 Flash)
-- @octokit/rest (wiki commit)
+- LLM drafting via a 3-provider fallback chain: Gemini (`gemini-flash-lite-latest`) → Groq → DeepSeek
+- @octokit/rest (wiki commit) · qrcode (review QR codes)
 - vitest for unit tests
 
 ## Commands

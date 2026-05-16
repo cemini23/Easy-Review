@@ -89,6 +89,13 @@ Set API rules to `@request.auth.id != ""` on all three (superuser-only access fo
 
 **Important — PocketBase v0.23+ change.** Older docs assumed `created` and `updated` were auto-added system fields. They are not anymore. You must add them explicitly as `autodate` fields, otherwise sorting by `+created` (which the app does) returns HTTP 400. The schemas above already include them.
 
+**Optional-feature collections.** The Site Health and Schema tabs each need one extra collection. Instead of building them by hand, run the idempotent setup scripts after Step 4 (they read the same `.env.local`):
+
+- `node scripts/add-site-health-schema.mjs` — adds `website_url` / `gbp_place_id` to `operators` and creates `site_health_snapshots`
+- `node scripts/add-schema-profiles.mjs` — creates `schema_profiles` (persists the Schema tab's JSON-LD profile across devices)
+
+Both are safe to skip if you don't use those tabs, and safe to re-run.
+
 ## Step 2 — Get an LLM API key (2 min)
 
 EasyReview supports a 3-tier provider fallback: **Gemini → Groq → DeepSeek**. Set at least one. If multiple are configured, providers are tried in that order; if a provider returns a rate-limit / 5xx / validation failure, the next one is tried automatically.

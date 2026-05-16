@@ -47,10 +47,50 @@ async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Respon
   }
 }
 
+/** Max redirect hops `safeFetch` will follow before giving up. */
+const MAX_REDIRECTS = 5;
+
+/**
+ * Fetch an operator-supplied URL with SSRF protection: redirects are followed
+ * **manually**, re-validating every hop with `isValidPublicHttpUrl`. Plain
+ * `fetch` follows redirects blindly — a public URL could 302 to a private
+ * address (cloud metadata at 169.254.169.254, an RFC1918 host) and the
+ * input-only guard would never see it. Throws on a non-public hop or on too
+ * many redirects; callers already wrap fetches in try/catch and fail safe.
+ */
+export async function safeFetch(
+  url: string,
+  init?: RequestInit,
+  timeoutMs: number = TIMEOUT_MS,
+): Promise<Response> {
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if (!isValidPublicHttpUrl(current)) {
+      throw new Error('blocked non-public URL in fetch/redirect chain');
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let res: Response;
+    try {
+      res = await fetch(current, { ...init, redirect: 'manual', signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location');
+      if (!location) return res; // redirect with no target — hand back as-is
+      current = new URL(location, current).toString();
+      continue;
+    }
+    return res;
+  }
+  throw new Error('too many redirects');
+}
+
 export async function fetchHttps(url: string): Promise<boolean> {
   if (!url.startsWith('https://')) return false;
   try {
-    const res = await fetchWithTimeout(url, { method: 'GET' });
+    const res = await safeFetch(url, { method: 'GET' });
     return res.ok;
   } catch {
     return false;
@@ -82,7 +122,7 @@ const LOCAL_BUSINESS_TYPES = new Set([
 
 export async function fetchSchema(url: string): Promise<{ hasLocalBusiness: boolean; types: string[] } | null> {
   try {
-    const res = await fetchWithTimeout(url, { method: 'GET' });
+    const res = await safeFetch(url, { method: 'GET' });
     if (!res.ok) return null;
     const html = await res.text();
     const matches = html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
@@ -117,7 +157,7 @@ function originOf(url: string): string {
 
 export async function fetchSitemap(url: string): Promise<boolean> {
   try {
-    const res = await fetchWithTimeout(`${originOf(url)}/sitemap.xml`, { method: 'GET' });
+    const res = await safeFetch(`${originOf(url)}/sitemap.xml`, { method: 'GET' });
     if (!res.ok) return false;
     const ct = res.headers.get('content-type') ?? '';
     return ct.includes('xml');
@@ -128,7 +168,7 @@ export async function fetchSitemap(url: string): Promise<boolean> {
 
 export async function fetchRobots(url: string): Promise<boolean> {
   try {
-    const res = await fetchWithTimeout(`${originOf(url)}/robots.txt`, { method: 'GET' });
+    const res = await safeFetch(`${originOf(url)}/robots.txt`, { method: 'GET' });
     return res.ok;
   } catch {
     return false;
@@ -152,7 +192,7 @@ export async function fetchHomepageMeta(url: string): Promise<{
   descriptionLength: number;
 } | null> {
   try {
-    const res = await fetchWithTimeout(url, { method: 'GET' });
+    const res = await safeFetch(url, { method: 'GET' });
     if (!res.ok) return null;
     const html = await res.text();
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
