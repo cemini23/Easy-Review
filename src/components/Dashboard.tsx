@@ -34,6 +34,12 @@ export default function Dashboard({
           <Link href="/site-health" className="text-sm text-indigo-600 hover:text-indigo-800">
             Site Health →
           </Link>
+          <Link href="/schema" className="text-sm text-indigo-600 hover:text-indigo-800">
+            Schema →
+          </Link>
+          <Link href="/citability" className="text-sm text-indigo-600 hover:text-indigo-800">
+            Citability →
+          </Link>
           <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full border">
             {new Date().toLocaleDateString()}
           </span>

@@ -133,3 +133,88 @@ export interface SiteHealthSnapshot {
     error: string | null;
   } | null;
 }
+
+// --- Schema markup generator ---------------------------------------------
+
+/** Days of the week, in the order the form renders them. */
+export type Weekday =
+  | 'Monday'
+  | 'Tuesday'
+  | 'Wednesday'
+  | 'Thursday'
+  | 'Friday'
+  | 'Saturday'
+  | 'Sunday';
+
+/** One open/close span for a set of days, or a closed day. */
+export interface OpeningHoursEntry {
+  day: Weekday;
+  closed: boolean;
+  opens: string; // "HH:MM" 24h
+  closes: string; // "HH:MM" 24h
+}
+
+/** A single service offered, optionally priced. */
+export interface SchemaService {
+  name: string;
+  description?: string;
+  price?: string; // e.g. "35.00" — no currency symbol
+}
+
+/** A single FAQ question/answer pair for FAQPage schema. */
+export interface SchemaFaq {
+  question: string;
+  answer: string;
+}
+
+/** Everything needed to generate a LocalBusiness + FAQPage JSON-LD block. */
+export interface SchemaProfile {
+  businessName: string;
+  /** schema.org @type, e.g. "BarberShop". Derived from vertical, overridable. */
+  schemaType: string;
+  url: string;
+  telephone?: string;
+  priceRange?: string; // "$" | "$$" | "$$$" | "$$$$"
+  imageUrls: string[];
+  street?: string;
+  city?: string;
+  region?: string;
+  postalCode?: string;
+  country: string; // ISO 2-letter, default "US"
+  latitude?: number;
+  longitude?: number;
+  hours: OpeningHoursEntry[];
+  /** GBP place_id — used to build the canonical Google Maps sameAs URL. */
+  placeId?: string;
+  /** Extra sameAs URLs (Instagram, Facebook, Yelp, …). */
+  socialUrls: string[];
+  services: SchemaService[];
+  faqs: SchemaFaq[];
+}
+
+// --- GEO/AEO citability checker ------------------------------------------
+
+/** Status of one citability signal — reuses the site-health vocabulary. */
+export type CitabilityStatus = 'ok' | 'warn' | 'fail' | 'info';
+
+/** One analyzed signal: what was measured, and how to improve it. */
+export interface CitabilitySignal {
+  key: string;
+  label: string;
+  status: CitabilityStatus;
+  /** What the analyzer found. */
+  detail: string;
+  /** Concrete recommendation for the operator. */
+  fix: string;
+}
+
+/** Full result of analyzing one page for AI-engine citability. */
+export interface CitabilityReport {
+  url: string;
+  /** Composite 0-100 citability score. */
+  score: number;
+  signals: CitabilitySignal[];
+  fetchedAt: string;
+  /** Set when the page could not be fetched/analyzed; signals will be empty. */
+  error: string | null;
+}
