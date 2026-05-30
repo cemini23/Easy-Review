@@ -60,6 +60,7 @@ End-to-end setup (PocketBase + Gemini + GitHub PAT + Vercel + smoke test) is in 
 ## Related
 
 - Methodology newsletter: [Outlier Weekly](https://outlierweekly.substack.com)
+- YouTube: [@Cemini23](https://www.youtube.com/@Cemini23)
 - Wiki this app serves: [SEO-GEO-B-M-Wiki](https://github.com/cemini23/SEO-GEO-B-M-Wiki)
 - Agent meta-wiki: [cemini-claude-code-CCC](https://github.com/cemini23/cemini-claude-code-CCC)
 - Agent toolkit: [vet](https://github.com/cemini23/vet) · [wikilint](https://github.com/cemini23/wikilint)
