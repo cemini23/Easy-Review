@@ -57,6 +57,13 @@ End-to-end setup (PocketBase + Gemini + GitHub PAT + Vercel + smoke test) is in 
 - Never log customer names from reviews to console or error toasts.
 - The 1★-likely-fake category is never pre-drafted by AI — operator decides manually per wiki guidance.
 
+## Related
+
+- Methodology newsletter: [Outlier Weekly](https://outlierweekly.substack.com)
+- Wiki this app serves: [SEO-GEO-B-M-Wiki](https://github.com/cemini23/SEO-GEO-B-M-Wiki)
+- Agent meta-wiki: [cemini-claude-code-CCC](https://github.com/cemini23/cemini-claude-code-CCC)
+- Agent toolkit: [vet](https://github.com/cemini23/vet) · [wikilint](https://github.com/cemini23/wikilint)
+
 ## License
 
 [MIT](LICENSE) © 2026 Cemini23
