@@ -65,6 +65,17 @@ End-to-end setup (PocketBase + Gemini + GitHub PAT + Vercel + smoke test) is in 
 - Agent meta-wiki: [cemini-claude-code-CCC](https://github.com/cemini23/cemini-claude-code-CCC)
 - Agent toolkit: [vet](https://github.com/cemini23/vet) · [wikilint](https://github.com/cemini23/wikilint)
 
+
+## Support
+
+Voluntary tips fund open research and tooling. **Donation-only addresses** — not trading or production wallets.
+
+| Chain family | Address |
+|--------------|---------|
+| **EVM** (Ethereum, Polygon, Base, Arbitrum, …) | `0x444C5C2eC439E0382aa5a17F70313c536BcC5D58` |
+| **Solana / SVM** | `J4zNn4hK9jTrKBFY8sbAGJHLoZvXvQf4B9pQSbSrocZE` |
+
+
 ## License
 
 [MIT](LICENSE) © 2026 Cemini23
